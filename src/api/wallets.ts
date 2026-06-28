@@ -1,7 +1,7 @@
 import { apiFetch } from "./client";
 import type { ChainType, ManualBalancesRead, WalletRead, WalletType } from "./types";
 export type WalletPayload = { label: string; wallet_type: WalletType; chain_type: ChainType | string; address?: string | null; group_id?: number | null; notes?: string };
-export type WalletPatch = Partial<Pick<WalletRead, "label" | "group_id" | "is_active" | "notes">>;
+export type WalletPatch = Partial<Pick<WalletRead, "label" | "group_id" | "is_active" | "notes" | "chain_type" | "address">>;
 export type ManualBalancePayload = { balances: Array<{ symbol: string; chain?: string; amount: string; price_usd?: string | null }> };
 export const getWallets = (activeOnly = true) => apiFetch<WalletRead[]>(`/wallets?active_only=${activeOnly}`);
 export const getWallet = (id: number) => apiFetch<WalletRead>(`/wallets/${id}`);

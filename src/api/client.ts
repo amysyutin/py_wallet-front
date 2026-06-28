@@ -35,7 +35,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   let response: Response;
   try {
-    response = await fetch(path, { ...options, headers });
+    response = await fetch(`/api${path}`, { ...options, headers });
   } catch {
     throw new ApiError(0, "Backend недоступен. Проверьте https://pywallet.dev или Vite proxy");
   }
