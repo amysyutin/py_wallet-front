@@ -1,13 +1,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  BarChart3,
-  CalendarDays,
-  CircleDollarSign,
   Clock3,
-  Gauge,
   Layers3,
-  ShieldCheck,
   WalletCards,
 } from "lucide-react";
 import {
@@ -58,7 +53,16 @@ export function Dashboard() {
     date: new Date(point.snapshot_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }),
     total: toNumber(point.total_usd),
   }));
-  const topShare = topAssets[0]?.share_pct ?? "0";
+  const movementData = chartData.map((point, index) => {
+    const previous = chartData[index - 1]?.total ?? point.total;
+    return {
+      ...point,
+      delta: point.total - previous,
+    };
+  });
+  const recentMovements = movementData.slice(-10);
+  const lastDelta = movementData.at(-1)?.delta ?? 0;
+  const maxAbsDelta = Math.max(...recentMovements.map((point) => Math.abs(point.delta)), 1);
 
   return (
     <div className="dashboard-grid">
@@ -107,7 +111,6 @@ export function Dashboard() {
       </section>
 
       <section className="metrics-grid soft-row">
-        <Metric label="Total USD" value={formatUsd(summary.total_usd)} helper="latest snapshots" icon={<CircleDollarSign size={20} />} />
         <Metric label="Wallets" value={String(summary.wallets_count)} helper="included in summary" icon={<WalletCards size={20} />} />
         <Metric label="Top assets" value={String(topAssets.length)} helper="portfolio share" icon={<Layers3 size={20} />} />
       </section>
@@ -158,12 +161,6 @@ export function Dashboard() {
         )}
       </article>
 
-      <article className="mini-card lock-card">
-        <ShieldCheck size={23} />
-        <strong>System Lock</strong>
-        <span>JWT protected routes</span>
-      </article>
-
       <article className="mini-card days-card">
         <Clock3 size={22} />
         <strong>30 Days</strong>
@@ -175,44 +172,34 @@ export function Dashboard() {
         </div>
       </article>
 
-      <article className="mini-card growth-card">
-        <Gauge size={22} />
-        <strong>{topShare}%</strong>
-        <span>top asset share</span>
-        <div className="gauge-ring" />
+      <article className="mini-card portfolio-health-card">
+        <div className="health-card-header">
+          <span>Portfolio health</span>
+          <strong className={lastDelta >= 0 ? "positive" : "negative"}>{lastDelta >= 0 ? "Up" : "Down"}</strong>
+        </div>
+        <div className="candles-row" aria-label="Свечи движения портфеля">
+          {recentMovements.map((point, index) => (
+            <i
+              key={`${point.date}-${index}`}
+              className={point.delta >= 0 ? "green" : "red"}
+              style={{ height: `${Math.max(22, (Math.abs(point.delta) / maxAbsDelta) * 76)}px` }}
+              title={`${point.date}: ${formatUsd(point.delta)}`}
+            />
+          ))}
+        </div>
+        <em>{formatUsd(lastDelta)} за последнюю точку</em>
       </article>
 
-      <article className="content-band review-card">
-        <SectionHeader eyebrow="Portfolio health" title="How is your wallet structure going?" />
-        <p className="muted">Manual balances are tracked separately from EVM summary until backend aggregation combines them.</p>
-        <div className="rating-row" aria-hidden="true">
-          <span />
-          <span />
-          <span className="neutral" />
-          <span className="happy" />
-          <span className="happy" />
+      <article className="content-band balance-movement-card">
+        <SectionHeader eyebrow="Balance movement" title="Движение баланса" />
+        <div className="balance-histogram" aria-label="Гистограмма движения баланса кошелька">
+          {recentMovements.map((point, index) => (
+            <i key={`${point.date}-bar-${index}`} className={point.delta >= 0 ? "green" : "red"}>
+              <span style={{ height: `${Math.max(16, (Math.abs(point.delta) / maxAbsDelta) * 130)}px` }} />
+            </i>
+          ))}
         </div>
-      </article>
-
-      <article className="content-band calendar-card">
-        <SectionHeader eyebrow="Snapshots" title="Latest activity" actions={<CalendarDays size={20} />} />
-        <div className="timeline-bars" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
-        <p className="muted">Snapshot history powers charts and top asset analytics.</p>
-      </article>
-
-      <article className="content-band stocks-card">
-        <BarChart3 size={24} />
-        <div>
-          <strong>{formatUsd(summary.total_usd)}</strong>
-          <span>Main portfolio</span>
-        </div>
-        <b>+ {topShare}%</b>
+        <p className="muted">Красный показывает снижение между снапшотами, зеленый - рост.</p>
       </article>
     </div>
   );

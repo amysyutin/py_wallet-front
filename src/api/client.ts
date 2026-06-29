@@ -1,3 +1,4 @@
+
 import { useAuthStore } from "../store/auth";
 
 type RequestOptions = RequestInit & { auth?: boolean };
@@ -18,11 +19,16 @@ function parseError(status: number, payload: unknown) {
 
   if (typeof data?.detail === "string") return data.detail;
   if (Array.isArray(data?.detail)) return data.detail.map((item) => item.msg).join("; ");
+  if (typeof payload === "string" && payload.trim()) return payload.trim();
+  if (status === 400) return "Некорректный запрос к backend";
   if (status === 401) return "Неверный email/пароль или сессия истекла";
   if (status === 403) return "Недостаточно прав";
+  if (status === 404) return "Ресурс не найден";
+  if (status === 405) return "Метод не разрешен для этого endpoint";
   if (status === 409) return "Конфликт данных";
   if (status === 422) return "Проверьте заполнение формы";
-  return "Запрос не выполнен";
+  if (status >= 500) return "Backend вернул внутреннюю ошибку";
+  return `Запрос не выполнен: HTTP ${status}`;
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {

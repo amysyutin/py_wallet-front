@@ -785,6 +785,126 @@ select:focus {
 
 
 
+
+.metrics-grid.soft-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.portfolio-health-card {
+  grid-column: span 4;
+  align-content: stretch;
+  gap: 14px;
+  background: #171717;
+  color: #ffffff;
+}
+
+.portfolio-health-card span,
+.portfolio-health-card em {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.health-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.health-card-header span {
+  font-weight: 850;
+}
+
+.health-card-header strong {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.health-card-header .positive {
+  color: #0f5132;
+  background: #b9f3cf;
+}
+
+.health-card-header .negative {
+  color: #7f1d1d;
+  background: #fecaca;
+}
+
+.candles-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 88px;
+}
+
+.candles-row i {
+  position: relative;
+  width: 10px;
+  border-radius: 999px;
+}
+
+.candles-row i::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: -10px;
+  bottom: -10px;
+  width: 2px;
+  border-radius: 999px;
+  opacity: 0.75;
+  background: currentColor;
+}
+
+.candles-row .green {
+  color: #46d47c;
+  background: #46d47c;
+}
+
+.candles-row .red {
+  color: #f05a4a;
+  background: #f05a4a;
+}
+
+.balance-movement-card {
+  grid-column: span 8;
+}
+
+.balance-histogram {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(14px, 1fr));
+  align-items: end;
+  gap: 12px;
+  min-height: 164px;
+  margin: 14px 0 16px;
+  padding: 12px;
+  border-radius: 22px;
+  background: #faf7f4;
+}
+
+.balance-histogram i {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  min-height: 140px;
+  border-radius: 999px;
+}
+
+.balance-histogram span {
+  display: block;
+  width: 100%;
+  max-width: 28px;
+  border-radius: 999px 999px 8px 8px;
+}
+
+.balance-histogram .green span {
+  background: linear-gradient(180deg, #2bbf6a, #9be7b8);
+}
+
+.balance-histogram .red span {
+  background: linear-gradient(180deg, #ec6046, #f7b1a5);
+}
+
 .wallet-detail-grid {
   grid-template-columns: minmax(0, 2fr) minmax(160px, 0.7fr) minmax(140px, 0.6fr);
 }
@@ -825,9 +945,7 @@ select:focus {
   .snapshot-card,
   .allocation-card,
   .history-card,
-  .review-card,
-  .calendar-card,
-  .stocks-card {
+  .balance-movement-card {
     grid-column: span 12;
   }
 
@@ -906,8 +1024,14 @@ select:focus {
     grid-column: span 12;
   }
 
-  .mini-card {
+  .mini-card,
+  .portfolio-health-card,
+  .balance-movement-card {
     grid-column: span 12;
+  }
+
+  .metrics-grid.soft-row {
+    grid-template-columns: 1fr;
   }
 
   .search-pill,
