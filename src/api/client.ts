@@ -43,7 +43,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   try {
     response = await fetch(`/api${path}`, { ...options, headers });
   } catch {
-    throw new ApiError(0, "Backend недоступен. Проверьте https://pywallet.dev или Vite proxy");
+    throw new ApiError(0, "Backend недоступен. Проверьте локальный backend или Vite proxy");
   }
 
   if (response.status === 204) return undefined as T;

@@ -25,6 +25,12 @@ export type WalletGroupRead = {
   updated_at?: string;
 };
 
+export type WalletTopAsset = {
+  symbol: string;
+  amount: string;
+  usd_value: string;
+};
+
 export type WalletRead = {
   id: number;
   label: string;
@@ -37,6 +43,30 @@ export type WalletRead = {
   is_active: boolean;
   created_at: string;
   updated_at?: string;
+};
+
+export type WalletSummaryRead = WalletRead & {
+  group_name?: string | null;
+  balance_usd: string;
+  balance_source: "latest_snapshot" | "manual" | "none";
+  last_snapshot_at: string | null;
+  balances_count: number;
+  top_assets: WalletTopAsset[];
+};
+
+export type WalletAssetDetail = {
+  symbol: string;
+  chain: string;
+  amount: string;
+  usd_value: string;
+  price_usd?: string | null;
+};
+
+export type WalletDetailSummary = {
+  wallet: WalletRead;
+  balance_usd: string;
+  last_snapshot_at: string | null;
+  assets: WalletAssetDetail[];
 };
 
 export type ManualBalance = {
@@ -56,36 +86,57 @@ export type ManualBalancesRead = {
   total_usd: string;
 };
 
-export type SnapshotRead = {
+export type WalletSnapshotRead = {
   id: number;
-  wallet_id: number;
-  snapshot_at: string;
+  snapshot_run_id: number;
+  status: string;
   total_usd: string;
-  balances: Array<{ symbol: string; amount: string; usd_value: string }>;
+  snapshot_at: string;
+};
+
+export type SnapshotJobRead = {
+  job_id: number;
+  status: string;
+};
+
+export type SnapshotJobDetail = SnapshotJobRead & {
+  scope_type: "all" | "group" | "wallet" | string;
+  wallet_id: number | null;
+  group_id?: number | null;
+  trigger_type: string;
+  created_at: string;
+  finished_at: string | null;
+  error_message: string | null;
 };
 
 export type PortfolioSummary = {
   total_usd: string;
   wallets_count: number;
-  top_assets: Array<{ symbol: string; usd_value: string; share_pct: string }>;
+  active_wallets_count: number;
+  last_snapshot_at?: string | null;
+  top_assets: Array<{ symbol: string; usd_value: string; share_pct: number }>;
 };
 
 export type PortfolioHistory = {
   wallet_id?: number | null;
+  group_id?: number | null;
   days: number;
   points: Array<{ snapshot_at: string; total_usd: string }>;
 };
 
 export type LivePortfolioSummary = {
   address: string;
-  total_usd: string;
+  total_usd: string | number;
   chains: Array<{
     chain: string;
     native_symbol: string;
-    native_amount: string;
-    usdt_amount: string;
-    usdc_amount: string;
-    tokens: Array<{ symbol: string; amount: string; usd: string }>;
+    native_amount: string | number;
+    usdt_amount: string | number;
+    usdc_amount: string | number;
+    tokens: Array<{ symbol: string; amount: string | number; usd: string | number }>;
+    status?: string;
+    error_type?: string | null;
+    error_message?: string | null;
   }>;
 };
 

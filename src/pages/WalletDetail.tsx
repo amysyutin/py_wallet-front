@@ -1,15 +1,17 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Copy, Plus, Save, Trash2 } from "lucide-react";
+import { Copy, Plus, Save, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getErrorMessage } from "../api/client";
-import { createSnapshot } from "../api/snapshots";
 import type { ChainType } from "../api/types";
 import {
   deleteManualBalance,
   getManualBalances,
   getWallet,
+  getWalletAssets,
+  getWalletSnapshots,
+  getWalletSummary,
   saveManualBalances,
   updateWallet,
 } from "../api/wallets";
@@ -18,6 +20,12 @@ import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd } from "../lib/format";
 
 const evmChains: ChainType[] = ["mainnet", "base", "bnb", "arbitrum", "linea", "binance"];
+
+function hasUsableLiveBalance(data: Awaited<ReturnType<typeof getWalletAssets>> | undefined) {
+  if (!data) return false;
+  if (data.chains.length === 0) return true;
+  return data.chains.some((chain) => chain.status !== "skipped" || chain.error_type !== "missing_rpc_url");
+}
 
 export function WalletDetail() {
   const queryClient = useQueryClient();
@@ -33,17 +41,25 @@ export function WalletDetail() {
     queryFn: () => getWallet(walletId),
     enabled: Number.isFinite(walletId),
   });
+  const summaryQuery = useQuery({
+    queryKey: ["wallet", walletId, "summary"],
+    queryFn: () => getWalletSummary(walletId),
+    enabled: Number.isFinite(walletId),
+  });
+  const snapshotsQuery = useQuery({
+    queryKey: ["wallet", walletId, "snapshots"],
+    queryFn: () => getWalletSnapshots(walletId),
+    enabled: Number.isFinite(walletId),
+  });
+  const liveAssetsQuery = useQuery({
+    queryKey: ["wallet", walletId, "assets"],
+    queryFn: () => getWalletAssets(walletId),
+    enabled: walletQuery.data?.wallet_type === "evm",
+  });
   const balancesQuery = useQuery({
     queryKey: ["wallet", walletId, "balances"],
     queryFn: () => getManualBalances(walletId),
     enabled: walletQuery.data?.wallet_type === "manual",
-  });
-  const snapshotMutation = useMutation({
-    mutationFn: () => createSnapshot(walletId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
-      queryClient.invalidateQueries({ queryKey: ["wallet", walletId] });
-    },
   });
   const updateMutation = useMutation({
     mutationFn: () => updateWallet(walletId, { chain_type: chainType, address }),
@@ -74,6 +90,14 @@ export function WalletDetail() {
 
   const wallet = walletQuery.data;
   const isEvm = wallet.wallet_type === "evm";
+  const isLiveUnavailable = liveAssetsQuery.data && !hasUsableLiveBalance(liveAssetsQuery.data);
+  const liveBalanceLabel = !isEvm
+    ? formatUsd(summaryQuery.data?.balance_usd)
+    : liveAssetsQuery.isLoading
+      ? "Загрузка..."
+      : liveAssetsQuery.isError || isLiveUnavailable
+        ? "Live недоступен"
+        : formatUsd(liveAssetsQuery.data?.total_usd);
 
   function handleAddBalance(event: FormEvent) {
     event.preventDefault();
@@ -99,18 +123,15 @@ export function WalletDetail() {
       <SectionHeader
         eyebrow={wallet.wallet_type}
         title={wallet.label}
-        actions={isEvm ? (
-          <button className="primary-button" type="button" onClick={() => snapshotMutation.mutate()} disabled={snapshotMutation.isPending}>
-            <Camera size={18} />
-            {snapshotMutation.isPending ? "Снимаем..." : "Снапшот"}
-          </button>
-        ) : null}
       />
 
       <div className="detail-grid wallet-detail-grid">
         <p className="full-address-line"><b>Адрес:</b> {wallet.address || "manual wallet"}</p>
         <p><b>Сеть:</b> {wallet.chain_type}</p>
         <p><b>Статус:</b> {wallet.is_active ? "active" : "archived"}</p>
+        <p><b>Live баланс:</b> {liveBalanceLabel}</p>
+        <p><b>Snapshot баланс:</b> {formatUsd(summaryQuery.data?.balance_usd)}</p>
+        <p><b>Последний snapshot:</b> {summaryQuery.data?.last_snapshot_at ? new Date(summaryQuery.data.last_snapshot_at).toLocaleString("ru-RU") : "нет"}</p>
       </div>
 
       {isEvm ? (
@@ -141,7 +162,6 @@ export function WalletDetail() {
       ) : null}
 
       {updateMutation.isError ? <p className="form-error">{getErrorMessage(updateMutation.error)}</p> : null}
-      {snapshotMutation.isError ? <p className="form-error">{getErrorMessage(snapshotMutation.error)}</p> : null}
 
       {wallet.wallet_type === "manual" ? (
         <section className="nested-section">
@@ -174,6 +194,66 @@ export function WalletDetail() {
       ) : (
         <p className="muted">EVM-снапшоты агрегируют этот адрес по поддерживаемым сетям.</p>
       )}
+
+      {isEvm ? (
+        <section className="nested-section">
+          <SectionHeader eyebrow="Live" title={`Реальный баланс ${liveBalanceLabel}`} />
+          {liveAssetsQuery.isLoading ? <PageState title="Смотрим live assets" /> : null}
+          {liveAssetsQuery.isError ? <p className="form-error">{getErrorMessage(liveAssetsQuery.error)}</p> : null}
+          {isLiveUnavailable ? <p className="form-error">Live RPC не настроен для выбранных сетей. Ниже остается snapshot summary.</p> : null}
+          <div className="table-list">
+            {(liveAssetsQuery.data?.chains ?? []).map((chain) => {
+              const tokenTotal = chain.tokens.reduce((sum, token) => sum + Number(token.usd || 0), 0);
+              const stableTotal = Number(chain.usdt_amount || 0) + Number(chain.usdc_amount || 0);
+
+              return (
+                <article className="table-row live-chain-row" key={chain.chain}>
+                  <div>
+                    <strong>{chain.chain}</strong>
+                    <span>
+                      {chain.native_symbol}: {chain.native_amount} · USDT: {chain.usdt_amount} · USDC: {chain.usdc_amount}
+                    </span>
+                  </div>
+                  <b>{formatUsd(tokenTotal + stableTotal)}</b>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="nested-section">
+        <SectionHeader eyebrow="Snapshot summary" title={`Активы ${formatUsd(summaryQuery.data?.balance_usd)}`} />
+        {summaryQuery.isLoading ? <PageState title="Загружаем summary" /> : null}
+        {summaryQuery.isError ? <p className="form-error">{getErrorMessage(summaryQuery.error)}</p> : null}
+        <div className="table-list">
+          {(summaryQuery.data?.assets ?? []).map((asset) => (
+            <article className="table-row" key={`${asset.chain}-${asset.symbol}`}>
+              <div>
+                <strong>{asset.symbol}</strong>
+                <span>{asset.amount} · {asset.chain}</span>
+              </div>
+              <b>{formatUsd(asset.usd_value)}</b>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="nested-section">
+        <SectionHeader eyebrow="Snapshots" title="Последние запуски" />
+        {snapshotsQuery.isError ? <p className="form-error">{getErrorMessage(snapshotsQuery.error)}</p> : null}
+        <div className="table-list">
+          {(snapshotsQuery.data ?? []).map((snapshot) => (
+            <article className="table-row" key={snapshot.id}>
+              <div>
+                <strong>{formatUsd(snapshot.total_usd)}</strong>
+                <span>{new Date(snapshot.snapshot_at).toLocaleString("ru-RU")} · run #{snapshot.snapshot_run_id}</span>
+              </div>
+              <span className={snapshot.status === "success" ? "status-pill active" : "status-pill"}>{snapshot.status}</span>
+            </article>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }

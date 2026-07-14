@@ -4,5 +4,5 @@ export const getPortfolioSummary = () => apiFetch<PortfolioSummary>("/portfolio/
 export function getPortfolioHistory(params: { walletId?: number | null; days: number }) {
   const search = new URLSearchParams({ days: String(params.days) });
   if (params.walletId) search.set("wallet_id", String(params.walletId));
-  return apiFetch<PortfolioHistory>(`/portfolio?${search.toString()}`);
+  return apiFetch<PortfolioHistory>(`/portfolio/history?${search.toString()}`);
 }

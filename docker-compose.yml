@@ -1,0 +1,15 @@
+services:
+  py-wallet-front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: py-wallet-front
+    ports:
+      - "8080:80"
+    networks:
+      -  py_wallet_default
+
+networks:
+  py_wallet_default:
+    external: true
+    name: py_wallet_default

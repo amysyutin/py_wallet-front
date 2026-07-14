@@ -174,12 +174,14 @@ select:focus {
   align-items: center;
 }
 
-.product-title::before {
-  content: "";
+.product-title-icon {
+  display: grid;
+  place-items: center;
   grid-row: span 2;
   width: 42px;
   height: 42px;
   border-radius: 50%;
+  color: #ffffff;
   background: #050505;
 }
 
@@ -644,6 +646,12 @@ select:focus {
   font-weight: 700;
 }
 
+.form-success {
+  margin: 8px 0 0;
+  color: #257350;
+  font-weight: 800;
+}
+
 .toggle {
   display: inline-flex;
   align-items: center;
@@ -691,6 +699,21 @@ select:focus {
   background: #f4f1ef;
 }
 
+.chip:hover:not(:disabled),
+.chip:focus-visible:not(:disabled) {
+  background: #ebe4df;
+}
+
+.chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.copy-chip.copied {
+  color: #257350;
+  background: #e8f5ee;
+}
+
 .auth-shell {
   display: grid;
   place-items: center;
@@ -701,6 +724,36 @@ select:focus {
   gap: 20px;
   width: min(480px, 100%);
   padding: 34px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  width: fit-content;
+  min-height: 44px;
+}
+
+.brand svg {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 10px;
+  color: #ffffff;
+  background: #111111;
+  stroke-width: 1.9;
+}
+
+.brand span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Inter, system-ui, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .auth-panel h1 {
@@ -722,7 +775,7 @@ select:focus {
 
 .wallet-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto auto auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, auto) minmax(90px, auto) auto auto auto auto;
   align-items: center;
   padding: 10px 0;
 }
@@ -737,6 +790,31 @@ select:focus {
   width: fit-content;
   border-radius: 999px;
   outline: none;
+}
+
+.wallet-balance-cell {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  min-width: 0;
+}
+
+.wallet-balance-cell strong {
+  white-space: nowrap;
+}
+
+.wallet-balance-cell span,
+.wallet-assets-preview {
+  color: #8c8987;
+  font-size: 0.82rem;
+}
+
+.wallet-assets-preview {
+  justify-self: end;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wallet-title-link:hover strong,
@@ -968,6 +1046,12 @@ select:focus {
 @media (max-width: 860px) {
   .wallet-row {
     grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .wallet-balance-cell,
+  .wallet-assets-preview {
+    justify-self: start;
     justify-items: start;
   }
 

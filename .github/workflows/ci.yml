@@ -1,0 +1,67 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Check npm
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Docker Build
+        run: |
+          docker build -t py-wallet-front:${{ github.sha }} .
+
+      - name: Docker run
+        run: |
+          docker run -d \
+            --name py-wallet-front-smoke \
+            -p 127.0.0.1:8080:80 \
+            py-wallet-front:${{ github.sha }}
+
+      - name: Smoke-test
+        run: |
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8080/healthz; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs py-wallet-front-smoke
+          exit 1
+
+      - name: SPA fallback
+        run: |
+          curl -fsS http://127.0.0.1:8080/
+          curl -fsS http://127.0.0.1:8080/wallets
+
+      - name: Stop smoke container
+        if: always()
+        run: docker rm -f py-wallet-front-smoke || true
