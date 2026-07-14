@@ -26,6 +26,27 @@ import { formatUsd, toNumber } from "../lib/format";
 
 const colors = ["#ec6046", "#f2a35e", "#161616", "#d9cfc8", "#8f9b92"];
 
+function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd: string }>) {
+  const byTimestamp = new Map<string, number>();
+
+  for (const point of points) {
+    const timestamp = new Date(point.snapshot_at).toISOString();
+    byTimestamp.set(timestamp, (byTimestamp.get(timestamp) ?? 0) + toNumber(point.total_usd));
+  }
+
+  return Array.from(byTimestamp.entries())
+    .sort(([left], [right]) => new Date(left).getTime() - new Date(right).getTime())
+    .map(([timestamp, total]) => {
+      const date = new Date(timestamp);
+      return {
+        timestamp,
+        label: date.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }),
+        tooltipLabel: date.toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
+        total,
+      };
+    });
+}
+
 export function Dashboard() {
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
   const historyQuery = useQuery({
@@ -49,10 +70,7 @@ export function Dashboard() {
 
   const topAssets = summary.top_assets ?? [];
   const history = historyQuery.data?.points ?? [];
-  const chartData = history.map((point) => ({
-    date: new Date(point.snapshot_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }),
-    total: toNumber(point.total_usd),
-  }));
+  const chartData = buildPortfolioChartData(history);
   const movementData = chartData.map((point, index) => {
     const previous = chartData[index - 1]?.total ?? point.total;
     return {
@@ -76,9 +94,6 @@ export function Dashboard() {
           <h2>{formatUsd(summary.total_usd)}</h2>
           <span>Based on the latest EVM wallet snapshots</span>
         </div>
-        <button className="accent-button" type="button">
-          Create snapshot
-        </button>
       </section>
 
       <section className="snapshot-card">
@@ -103,22 +118,22 @@ export function Dashboard() {
                   <stop offset="95%" stopColor="#ec6046" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <Tooltip formatter={(value) => formatUsd(Number(value))} labelFormatter={(label) => `Дата: ${label}`} />
-              <Area type="monotone" dataKey="total" stroke="#ec6046" strokeWidth={4} fill="url(#snapshotFill)" dot={false} />
+              <Tooltip formatter={(value) => formatUsd(Number(value))} labelFormatter={(_, payload) => `Дата: ${payload?.[0]?.payload?.tooltipLabel ?? ""}`} />
+              <Area type="linear" dataKey="total" stroke="#ec6046" strokeWidth={4} fill="url(#snapshotFill)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         )}
       </section>
 
       <section className="metrics-grid soft-row">
-        <Metric label="Wallets" value={String(summary.wallets_count)} helper="included in summary" icon={<WalletCards size={20} />} />
+        <Metric label="Wallets" value={String(summary.active_wallets_count ?? summary.wallets_count)} helper="active in summary" icon={<WalletCards size={20} />} />
         <Metric label="Top assets" value={String(topAssets.length)} helper="portfolio share" icon={<Layers3 size={20} />} />
       </section>
 
       <article className="content-band allocation-card">
         <SectionHeader eyebrow="Assets" title="Allocation" />
         {topAssets.length === 0 ? (
-          <PageState title="Нет активов" message="Сделайте первый снапшот EVM-кошельков." />
+          <PageState title="Нет активов" message="Данные появятся после автоматической обработки кошельков." />
         ) : (
           <div className="chart-grid">
             <ResponsiveContainer width="100%" height={250}>
@@ -152,10 +167,10 @@ export function Dashboard() {
         ) : (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData} margin={{ left: -18, right: 12, top: 18, bottom: 4 }}>
-              <XAxis dataKey="date" axisLine={false} tickLine={false} />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} />
               <YAxis axisLine={false} tickLine={false} />
-              <Tooltip formatter={(value) => formatUsd(Number(value))} />
-              <Line type="monotone" dataKey="total" stroke="#ec6046" strokeWidth={4} dot={false} />
+              <Tooltip formatter={(value) => formatUsd(Number(value))} labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel ?? ""} />
+              <Line type="linear" dataKey="total" stroke="#ec6046" strokeWidth={4} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -180,10 +195,10 @@ export function Dashboard() {
         <div className="candles-row" aria-label="Свечи движения портфеля">
           {recentMovements.map((point, index) => (
             <i
-              key={`${point.date}-${index}`}
+              key={`${point.timestamp}-${index}`}
               className={point.delta >= 0 ? "green" : "red"}
               style={{ height: `${Math.max(22, (Math.abs(point.delta) / maxAbsDelta) * 76)}px` }}
-              title={`${point.date}: ${formatUsd(point.delta)}`}
+              title={`${point.tooltipLabel}: ${formatUsd(point.delta)}`}
             />
           ))}
         </div>
@@ -194,7 +209,7 @@ export function Dashboard() {
         <SectionHeader eyebrow="Balance movement" title="Движение баланса" />
         <div className="balance-histogram" aria-label="Гистограмма движения баланса кошелька">
           {recentMovements.map((point, index) => (
-            <i key={`${point.date}-bar-${index}`} className={point.delta >= 0 ? "green" : "red"}>
+            <i key={`${point.timestamp}-bar-${index}`} className={point.delta >= 0 ? "green" : "red"}>
               <span style={{ height: `${Math.max(16, (Math.abs(point.delta) / maxAbsDelta) * 130)}px` }} />
             </i>
           ))}

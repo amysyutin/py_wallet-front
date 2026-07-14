@@ -63,6 +63,9 @@ export function AppLayout() {
         <section className="workspace">
           <header className="topbar">
             <div className="product-title">
+              <span className="product-title-icon" aria-hidden="true">
+                <WalletCards size={22} />
+              </span>
               <p className="eyebrow">Financial</p>
               <h1>Dashboard</h1>
             </div>
