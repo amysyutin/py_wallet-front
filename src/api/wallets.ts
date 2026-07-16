@@ -26,7 +26,13 @@ export function getWallets(filters: WalletFilters | boolean = {}) {
   if (options.groupId) search.set("group_id", String(options.groupId));
   if (options.walletType) search.set("wallet_type", options.walletType);
   if (options.chainType) search.set("chain_type", options.chainType);
-  return apiFetch<WalletSummaryRead[]>(`/wallets?${search.toString()}`);
+  return apiFetch<WalletSummaryRead[]>(`/wallets?${search.toString()}`).then((wallets) =>
+    wallets.map((wallet) => ({
+      ...wallet,
+      balances_count: wallet.balances_count ?? 0,
+      top_assets: Array.isArray(wallet.top_assets) ? wallet.top_assets : [],
+    })),
+  );
 }
 
 export const getWallet = (id: number) => apiFetch<WalletRead>(`/wallets/${id}`);
