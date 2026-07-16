@@ -60,3 +60,36 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          
+  bump-gitops:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout infra repository
+        uses: actions/checkout@v6
+        with:
+          repository: amysyutin/py_wallet-infra
+          ref: main
+          token: ${{ secrets.INFRA_REPO_TOKEN }}
+          path: infra
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Bump frontend image tag
+        run: |
+          cd infra/manifests/frontend
+          kustomize edit set image \
+            ghcr.io/amysyutin/py_wallet-front=ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Commit and push
+        run: |
+          cd infra
+          git config user.name "deploybot"
+          git config user.email "deploybot@users.noreply.github.com"
+          git add manifests/frontend/kustomization.yaml
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "deploy(frontend): bump image to ${{ github.sha }}"
+          git push origin main
