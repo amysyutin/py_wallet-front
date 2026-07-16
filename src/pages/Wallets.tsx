@@ -1,6 +1,6 @@
 
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Check, Copy, ExternalLink, Plus } from "lucide-react";
+import { Archive, Check, Copy, ExternalLink, Plus, RefreshCw } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 import { getErrorMessage } from "../api/client";
@@ -37,6 +37,7 @@ export function Wallets() {
       .map((wallet) => ({
         queryKey: ["wallet", wallet.id, "assets"],
         queryFn: () => getWalletAssets(wallet.id),
+        enabled: false,
         staleTime: 30_000,
       })),
   });
@@ -141,15 +142,22 @@ export function Wallets() {
           const liveAssetsQuery = liveAssetsByWalletId.get(wallet.id);
           const liveBalance = liveAssetsQuery?.data?.total_usd;
           const hasLiveBalance = liveBalance !== undefined && liveAssetsQuery?.isError !== true && hasUsableLiveBalance(liveAssetsQuery?.data);
-          const isLiveLoading = liveAssetsQuery?.isLoading === true;
+          const isLiveLoading = liveAssetsQuery?.isFetching === true;
           const isLiveError = liveAssetsQuery?.isError === true;
           const isLiveUnavailable = liveAssetsQuery?.data && !hasUsableLiveBalance(liveAssetsQuery.data);
-          const balanceSource = hasLiveBalance ? "live" : wallet.balance_source === "latest_snapshot" ? "latest snapshot" : wallet.balance_source;
-          const balanceLabel = isLiveLoading
-            ? "..."
-            : (isLiveError || isLiveUnavailable) && wallet.balance_source === "none"
-              ? "live error"
-              : formatUsd(hasLiveBalance ? liveBalance : wallet.balance_usd);
+          const snapshotSource = wallet.balance_source === "latest_snapshot"
+            ? "latest snapshot"
+            : wallet.balance_source === "manual"
+              ? "manual"
+              : "no snapshot";
+          const balanceSource = hasLiveBalance
+            ? "live"
+            : isLiveLoading
+              ? `${snapshotSource} · live loading`
+              : isLiveError || isLiveUnavailable
+                ? `${snapshotSource} · live unavailable`
+                : snapshotSource;
+          const balanceLabel = formatUsd(hasLiveBalance ? liveBalance : wallet.balance_usd);
 
           return (
             <article className="table-row wallet-row" key={wallet.id}>
@@ -165,9 +173,20 @@ export function Wallets() {
               <div className="wallet-balance-cell">
                 <strong>{balanceLabel}</strong>
                 <span>
-                  {isLiveLoading ? "live loading" : (isLiveError || isLiveUnavailable) && wallet.balance_source === "none" ? "live unavailable" : balanceSource}
+                  {balanceSource}
                   {!hasLiveBalance && wallet.last_snapshot_at ? ` · ${new Date(wallet.last_snapshot_at).toLocaleDateString("ru-RU")}` : ""}
                 </span>
+                {wallet.wallet_type === "evm" && wallet.is_active ? (
+                  <button
+                    className="live-balance-button"
+                    type="button"
+                    onClick={() => void liveAssetsQuery?.refetch()}
+                    disabled={isLiveLoading}
+                  >
+                    <RefreshCw size={13} className={isLiveLoading ? "spin" : undefined} />
+                    {isLiveLoading ? "Проверяем live" : "Проверить live"}
+                  </button>
+                ) : null}
               </div>
               <span className="wallet-assets-preview">
                 {wallet.top_assets.length > 0
