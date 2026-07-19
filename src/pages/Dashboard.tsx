@@ -23,6 +23,7 @@ import { Metric } from "../components/Metric";
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd, toNumber } from "../lib/format";
+import { usePageCopy } from "../telegram/i18n";
 
 const colors = ["#ec6046", "#f2a35e", "#161616", "#d9cfc8", "#8f9b92"];
 
@@ -48,6 +49,7 @@ function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd:
 }
 
 export function Dashboard() {
+  const copy = usePageCopy();
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
   const historyQuery = useQuery({
     queryKey: ["portfolio", "history", 30],
@@ -55,11 +57,11 @@ export function Dashboard() {
   });
 
   if (summaryQuery.isLoading) {
-    return <PageState title="Загружаем портфель" message="Получаем summary и последние снапшоты." />;
+    return <PageState title={copy.loadingPortfolio} message="Portfolio summary & snapshots" />;
   }
 
   if (summaryQuery.isError) {
-    return <PageState title="Не удалось загрузить dashboard" message="Проверьте backend и авторизацию." />;
+    return <PageState title={copy.portfolioFailed} message="Check backend and authentication." />;
   }
 
   const summary = summaryQuery.data;
@@ -106,7 +108,7 @@ export function Dashboard() {
         </div>
         {chartData.length === 0 ? (
           <div className="compact-empty">
-            <span>Снапшотов пока нет</span>
+            <span>{copy.noSnapshots}</span>
             <p>Создайте первый snapshot, чтобы увидеть график портфеля.</p>
           </div>
         ) : (
@@ -133,7 +135,7 @@ export function Dashboard() {
       <article className="content-band allocation-card">
         <SectionHeader eyebrow="Assets" title="Allocation" />
         {topAssets.length === 0 ? (
-          <PageState title="Нет активов" message="Данные появятся после автоматической обработки кошельков." />
+          <PageState title={copy.noAssets} message="Portfolio allocation will appear after wallet processing." />
         ) : (
           <div className="chart-grid">
             <ResponsiveContainer width="100%" height={250}>
@@ -163,7 +165,7 @@ export function Dashboard() {
       <article className="content-band history-card">
         <SectionHeader eyebrow="History" title="Portfolio timeline" />
         {history.length === 0 ? (
-          <PageState title="Нет истории" message="Сделайте первый снапшот." />
+          <PageState title={copy.noHistory} message="Create the first snapshot." />
         ) : (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData} margin={{ left: -18, right: 12, top: 18, bottom: 4 }}>

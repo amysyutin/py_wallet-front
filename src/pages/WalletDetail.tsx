@@ -18,6 +18,7 @@ import {
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd } from "../lib/format";
+import { usePageCopy } from "../telegram/i18n";
 
 const evmChains: ChainType[] = ["mainnet", "base", "bnb", "arbitrum", "linea", "binance"];
 
@@ -28,6 +29,7 @@ function hasUsableLiveBalance(data: Awaited<ReturnType<typeof getWalletAssets>> 
 }
 
 export function WalletDetail() {
+  const copy = usePageCopy();
   const queryClient = useQueryClient();
   const walletId = Number(useParams().walletId);
   const [symbol, setSymbol] = useState("");
@@ -85,8 +87,8 @@ export function WalletDetail() {
     }
   }, [walletQuery.data]);
 
-  if (walletQuery.isLoading) return <PageState title="Загружаем кошелек" />;
-  if (walletQuery.isError || !walletQuery.data) return <PageState title="Кошелек не найден" />;
+  if (walletQuery.isLoading) return <PageState title={copy.loadingWallet} />;
+  if (walletQuery.isError || !walletQuery.data) return <PageState title={copy.walletMissing} />;
 
   const wallet = walletQuery.data;
   const isEvm = wallet.wallet_type === "evm";
@@ -96,7 +98,7 @@ export function WalletDetail() {
     : liveAssetsQuery.isLoading
       ? "Загрузка..."
       : liveAssetsQuery.isError || isLiveUnavailable
-        ? "Live недоступен"
+        ? `${copy.liveBalance} unavailable`
         : formatUsd(liveAssetsQuery.data?.total_usd);
 
   function handleAddBalance(event: FormEvent) {
@@ -126,18 +128,18 @@ export function WalletDetail() {
       />
 
       <div className="detail-grid wallet-detail-grid">
-        <p className="full-address-line"><b>Адрес:</b> {wallet.address || "manual wallet"}</p>
-        <p><b>Сеть:</b> {wallet.chain_type}</p>
-        <p><b>Статус:</b> {wallet.is_active ? "active" : "archived"}</p>
-        <p><b>Live баланс:</b> {liveBalanceLabel}</p>
-        <p><b>Snapshot баланс:</b> {formatUsd(summaryQuery.data?.balance_usd)}</p>
-        <p><b>Последний snapshot:</b> {summaryQuery.data?.last_snapshot_at ? new Date(summaryQuery.data.last_snapshot_at).toLocaleString("ru-RU") : "нет"}</p>
+        <p className="full-address-line"><b>{copy.address}:</b> {wallet.address || "manual wallet"}</p>
+        <p><b>{copy.network}:</b> {wallet.chain_type}</p>
+        <p><b>{copy.status}:</b> {wallet.is_active ? "active" : "archived"}</p>
+        <p><b>{copy.liveBalance}:</b> {liveBalanceLabel}</p>
+        <p><b>{copy.snapshotBalance}:</b> {formatUsd(summaryQuery.data?.balance_usd)}</p>
+        <p><b>{copy.lastSnapshot}:</b> {summaryQuery.data?.last_snapshot_at ? new Date(summaryQuery.data.last_snapshot_at).toLocaleString() : copy.none}</p>
       </div>
 
       {isEvm ? (
         <form className="wallet-settings-form" onSubmit={handleWalletUpdate}>
           <label>
-            Сеть
+            {copy.network}
             <select value={chainType} onChange={(event) => setChainType(event.target.value as ChainType)}>
               {evmChains.map((chain) => (
                 <option key={chain} value={chain}>{chain}</option>
@@ -145,12 +147,12 @@ export function WalletDetail() {
             </select>
           </label>
           <label>
-            Полный адрес кошелька
+            {copy.fullAddress}
             <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="0x..." required maxLength={128} />
           </label>
           <button className="primary-button" type="submit" disabled={updateMutation.isPending}>
             <Save size={18} />
-            {updateMutation.isPending ? "Сохраняем..." : "Сохранить сеть"}
+            {updateMutation.isPending ? copy.saving : copy.saveNetwork}
           </button>
           {wallet.address ? (
             <button className="chip" type="button" onClick={() => navigator.clipboard.writeText(wallet.address ?? "")}>
@@ -165,14 +167,14 @@ export function WalletDetail() {
 
       {wallet.wallet_type === "manual" ? (
         <section className="nested-section">
-          <SectionHeader eyebrow="Manual" title={`Балансы ${formatUsd(balancesQuery.data?.total_usd)}`} />
+          <SectionHeader eyebrow="Manual" title={`${copy.balances} ${formatUsd(balancesQuery.data?.total_usd)}`} />
           <form className="inline-form" onSubmit={handleAddBalance}>
             <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="BTC" required />
             <input value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="Amount" required />
             <input value={priceUsd} onChange={(event) => setPriceUsd(event.target.value)} placeholder="Price USD" />
             <button className="primary-button" type="submit">
               <Plus size={18} />
-              Сохранить
+              {copy.save}
             </button>
           </form>
           {saveMutation.isError ? <p className="form-error">{getErrorMessage(saveMutation.error)}</p> : null}
@@ -197,7 +199,7 @@ export function WalletDetail() {
 
       {isEvm ? (
         <section className="nested-section">
-          <SectionHeader eyebrow="Live" title={`Реальный баланс ${liveBalanceLabel}`} />
+          <SectionHeader eyebrow="Live" title={`${copy.realBalance} ${liveBalanceLabel}`} />
           {liveAssetsQuery.isLoading ? <PageState title="Смотрим live assets" /> : null}
           {liveAssetsQuery.isError ? <p className="form-error">{getErrorMessage(liveAssetsQuery.error)}</p> : null}
           {isLiveUnavailable ? <p className="form-error">Live RPC не настроен для выбранных сетей. Ниже остается snapshot summary.</p> : null}
@@ -223,7 +225,7 @@ export function WalletDetail() {
       ) : null}
 
       <section className="nested-section">
-        <SectionHeader eyebrow="Snapshot summary" title={`Активы ${formatUsd(summaryQuery.data?.balance_usd)}`} />
+        <SectionHeader eyebrow="Snapshot summary" title={`${copy.assets} ${formatUsd(summaryQuery.data?.balance_usd)}`} />
         {summaryQuery.isLoading ? <PageState title="Загружаем summary" /> : null}
         {summaryQuery.isError ? <p className="form-error">{getErrorMessage(summaryQuery.error)}</p> : null}
         <div className="table-list">
@@ -240,7 +242,7 @@ export function WalletDetail() {
       </section>
 
       <section className="nested-section">
-        <SectionHeader eyebrow="Snapshots" title="Последние запуски" />
+        <SectionHeader eyebrow="Snapshots" title={copy.recentRuns} />
         {snapshotsQuery.isError ? <p className="form-error">{getErrorMessage(snapshotsQuery.error)}</p> : null}
         <div className="table-list">
           {(snapshotsQuery.data ?? []).map((snapshot) => (

@@ -1666,3 +1666,284 @@ select:focus {
     padding: 0 13px;
   }
 }
+
+/* Telegram Mini App shell. Telegram theme variables deliberately only affect this route. */
+.telegram-stage,
+.telegram-gate {
+  --telegram-accent: #f47a32;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--tg-theme-text-color, #181716);
+  background: var(--tg-theme-bg-color, #f7f7f6);
+}
+
+.telegram-stage {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-right: max(12px, env(safe-area-inset-right));
+  padding-bottom: calc(76px + max(8px, env(safe-area-inset-bottom)));
+  padding-left: max(12px, env(safe-area-inset-left));
+}
+
+.telegram-header {
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 62px;
+  padding: 8px 4px 10px;
+  background: var(--tg-theme-header-bg-color, var(--tg-theme-bg-color, #f7f7f6));
+}
+
+.telegram-brand,
+.telegram-card-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.telegram-brand strong,
+.telegram-brand small {
+  display: block;
+}
+
+.telegram-brand small {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--tg-theme-hint-color, #77736f);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.telegram-wallet-logo {
+  display: inline-grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  color: #fff;
+  background: linear-gradient(145deg, #ff9c46, #eb5b1c);
+  box-shadow: 0 14px 34px rgba(238, 94, 27, 0.28);
+}
+
+.telegram-wallet-logo.small {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(238, 94, 27, 0.2);
+}
+
+.telegram-wallet-logo.pulse {
+  animation: telegram-wallet-pulse 1.25s ease-in-out infinite;
+}
+
+@keyframes telegram-wallet-pulse {
+  50% { transform: scale(1.05); opacity: 0.82; }
+}
+
+.telegram-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid color-mix(in srgb, var(--telegram-accent), transparent 75%);
+  border-radius: 50%;
+  color: #fff;
+  background: var(--telegram-accent);
+  font-weight: 850;
+}
+
+.telegram-workspace {
+  min-width: 0;
+  padding: 8px 0 20px;
+}
+
+.telegram-bottom-nav {
+  position: fixed;
+  z-index: 10;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 70px;
+  padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  border-top: 1px solid color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 88%);
+  background: color-mix(in srgb, var(--tg-theme-bottom-bar-bg-color, var(--tg-theme-bg-color, #fff)) 94%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.telegram-bottom-nav a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  color: var(--tg-theme-hint-color, #77736f);
+  font-size: 0.68rem;
+}
+
+.telegram-bottom-nav a.active {
+  color: var(--tg-theme-accent-text-color, var(--telegram-accent));
+}
+
+.telegram-gate {
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+}
+
+.telegram-gate-card {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(390px, 100%);
+  text-align: center;
+}
+
+.telegram-gate-card h1,
+.telegram-gate-card p {
+  margin: 0;
+}
+
+.telegram-gate-card p {
+  color: var(--tg-theme-hint-color, #77736f);
+}
+
+.telegram-settings-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.telegram-settings-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 90%);
+  border-radius: 24px;
+  background: var(--tg-theme-secondary-bg-color, #fff);
+  box-shadow: 0 12px 34px rgba(25, 20, 16, 0.05);
+}
+
+.telegram-settings-card h2,
+.telegram-settings-card p {
+  margin: 0;
+}
+
+.telegram-settings-card .primary-button {
+  width: 100%;
+  background: var(--tg-theme-button-color, var(--telegram-accent));
+  color: var(--tg-theme-button-text-color, #fff);
+}
+
+.telegram-settings-card > .chip {
+  width: 100%;
+}
+
+.telegram-card-title {
+  align-items: flex-start;
+}
+
+.telegram-card-title > svg {
+  flex: 0 0 auto;
+  color: var(--telegram-accent);
+}
+
+.telegram-card-title p {
+  margin-top: 4px;
+  color: var(--tg-theme-hint-color, #77736f);
+  font-size: 0.88rem;
+}
+
+.digest-status {
+  border-radius: 14px;
+  padding: 11px 13px;
+  color: var(--tg-theme-hint-color, #77736f);
+  background: color-mix(in srgb, var(--tg-theme-hint-color, #77736f), transparent 91%);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.digest-status.enabled {
+  color: #14754d;
+  background: rgba(35, 174, 112, 0.12);
+}
+
+.telegram-settings-form {
+  display: grid;
+  gap: 12px;
+}
+
+.telegram-settings-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--tg-theme-hint-color, #77736f);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.telegram-settings-form input,
+.telegram-settings-form select {
+  width: 100%;
+  border-color: color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 86%);
+  color: var(--tg-theme-text-color, #181716);
+  background: var(--tg-theme-bg-color, #f8f7f5);
+}
+
+.telegram-settings-form small {
+  color: var(--tg-theme-hint-color, #77736f);
+}
+
+.telegram-settings-form .chip {
+  justify-self: stretch;
+  color: var(--tg-theme-button-text-color, #fff);
+  background: var(--tg-theme-button-color, var(--telegram-accent));
+}
+
+.telegram-stage .dashboard-grid {
+  gap: 12px;
+}
+
+.telegram-stage .hero-card,
+.telegram-stage .snapshot-card,
+.telegram-stage .metrics-grid,
+.telegram-stage .allocation-card,
+.telegram-stage .history-card,
+.telegram-stage .mini-card,
+.telegram-stage .balance-movement-card {
+  grid-column: span 12;
+}
+
+.telegram-stage .hero-card,
+.telegram-stage .snapshot-card,
+.telegram-stage .content-band,
+.telegram-stage .metric,
+.telegram-stage .mini-card,
+.telegram-stage .state-panel {
+  border-color: color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 90%);
+  background: var(--tg-theme-secondary-bg-color, #fff);
+}
+
+@media (min-width: 720px) {
+  .telegram-stage {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .telegram-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .telegram-settings-card:first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telegram-wallet-logo.pulse { animation: none; }
+}

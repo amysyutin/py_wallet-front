@@ -10,6 +10,7 @@ import { archiveWallet, createWallet, getWalletAssets, getWallets } from "../api
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd, shortAddress } from "../lib/format";
+import { usePageCopy } from "../telegram/i18n";
 
 const chains: ChainType[] = ["mainnet", "base", "bnb", "arbitrum", "linea", "binance"];
 
@@ -20,6 +21,7 @@ function hasUsableLiveBalance(data: Awaited<ReturnType<typeof getWalletAssets>> 
 }
 
 export function Wallets() {
+  const copy = usePageCopy();
   const queryClient = useQueryClient();
   const [activeOnly, setActiveOnly] = useState(true);
   const [walletType, setWalletType] = useState<WalletType>("evm");
@@ -95,17 +97,17 @@ export function Wallets() {
     <section className="content-band">
       <SectionHeader
         eyebrow="Wallets"
-        title="Кошельки"
+        title={copy.walletsTitle}
         actions={
           <label className="toggle">
             <input type="checkbox" checked={!activeOnly} onChange={(event) => setActiveOnly(!event.target.checked)} />
-            Показать архивные
+            {copy.showArchived}
           </label>
         }
       />
 
       <form className="wallet-form" onSubmit={handleCreate}>
-        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Название" required minLength={1} maxLength={100} />
+        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder={copy.name} required minLength={1} maxLength={100} />
         <select value={walletType} onChange={(event) => setWalletType(event.target.value as WalletType)}>
           <option value="evm">EVM</option>
           <option value="manual">Manual</option>
@@ -121,21 +123,21 @@ export function Wallets() {
           </>
         ) : null}
         <select value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-          <option value="">Без группы</option>
+          <option value="">{copy.noGroup}</option>
           {(groupsQuery.data ?? []).map((group) => (
             <option key={group.id} value={group.id}>{group.name}</option>
           ))}
         </select>
         <button className="primary-button" type="submit" disabled={createMutation.isPending}>
           <Plus size={18} />
-          Добавить
+          {copy.add}
         </button>
       </form>
 
       {chainType === "binance" && walletType === "evm" ? <p className="muted">Binance chain не участвует в снапшотах.</p> : null}
       {createMutation.isError ? <p className="form-error">{getErrorMessage(createMutation.error)}</p> : null}
-      {walletsQuery.isLoading ? <PageState title="Загружаем кошельки" /> : null}
-      {walletsQuery.isError ? <PageState title="Не удалось загрузить кошельки" /> : null}
+      {walletsQuery.isLoading ? <PageState title={copy.loadingWallets} /> : null}
+      {walletsQuery.isError ? <PageState title={copy.walletsFailed} /> : null}
 
       <div className="table-list">
         {(walletsQuery.data ?? []).map((wallet) => {
@@ -162,7 +164,7 @@ export function Wallets() {
           return (
             <article className="table-row wallet-row" key={wallet.id}>
               <div className="wallet-cell-main">
-                <Link className="wallet-title-link" to={`/wallets/${wallet.id}`}>
+                <Link className="wallet-title-link" to={`${wallet.id}`}>
                   <strong>{wallet.label}</strong>
                 </Link>
                 <span>
@@ -184,7 +186,7 @@ export function Wallets() {
                     disabled={isLiveLoading}
                   >
                     <RefreshCw size={13} className={isLiveLoading ? "spin" : undefined} />
-                    {isLiveLoading ? "Проверяем live" : "Проверить live"}
+                    {isLiveLoading ? copy.checkingLive : copy.checkLive}
                   </button>
                 ) : null}
               </div>
@@ -198,18 +200,18 @@ export function Wallets() {
                 type="button"
                 onClick={() => void copyAddress(wallet.id, wallet.address)}
                 disabled={!wallet.address}
-                title={wallet.address ? "Скопировать адрес" : "У кошелька нет адреса"}
+                title={wallet.address ? copy.copyAddress : copy.copyAddress}
                 aria-label={wallet.address ? `Скопировать адрес ${wallet.label}` : `У кошелька ${wallet.label} нет адреса`}
               >
                 {copiedWalletId === wallet.id ? <Check size={14} /> : <Copy size={14} />}
-                {copiedWalletId === wallet.id ? "Скопировано" : shortAddress(wallet.address)}
+                {copiedWalletId === wallet.id ? copy.copied : shortAddress(wallet.address)}
               </button>
               <span className={wallet.is_active ? "status-pill active" : "status-pill"}>{wallet.is_active ? "active" : "archived"}</span>
-              <Link className="open-wallet-button" to={`/wallets/${wallet.id}`} aria-label={`Открыть кошелек ${wallet.label}`}>
-                Открыть
+              <Link className="open-wallet-button" to={`${wallet.id}`} aria-label={`Открыть кошелек ${wallet.label}`}>
+                {copy.open}
                 <ExternalLink size={16} />
               </Link>
-              <button className="icon-button" type="button" onClick={() => archiveMutation.mutate(wallet.id)} aria-label="Архивировать">
+              <button className="icon-button" type="button" onClick={() => archiveMutation.mutate(wallet.id)} aria-label={copy.archive}>
                 <Archive size={17} />
               </button>
             </article>
