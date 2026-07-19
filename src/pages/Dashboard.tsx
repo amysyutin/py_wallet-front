@@ -6,11 +6,12 @@ import {
   WalletCards,
 } from "lucide-react";
 import {
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
   Area,
   AreaChart,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -26,6 +27,19 @@ import { formatUsd, toNumber } from "../lib/format";
 import { usePageCopy } from "../telegram/i18n";
 
 const colors = ["#ec6046", "#f2a35e", "#161616", "#d9cfc8", "#8f9b92"];
+
+type PortfolioChartPoint = ReturnType<typeof buildPortfolioChartData>[number];
+
+type DailyHistoryPoint = {
+  day: string;
+  label: string;
+  total: number;
+  last: number;
+  min: number;
+  max: number;
+  samples: number;
+  delta: number;
+};
 
 function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd: string }>) {
   const byTimestamp = new Map<string, number>();
@@ -46,6 +60,55 @@ function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd:
         total,
       };
     });
+}
+
+function buildDailyHistoryData(points: PortfolioChartPoint[]): DailyHistoryPoint[] {
+  const byDay = new Map<string, PortfolioChartPoint[]>();
+
+  for (const point of points) {
+    const date = new Date(point.timestamp);
+    const day = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+    const bucket = byDay.get(day) ?? [];
+    bucket.push(point);
+    byDay.set(day, bucket);
+  }
+
+  const dailyPoints = Array.from(byDay.entries()).map(([day, bucket]) => {
+    const totals = bucket.map((point) => point.total).sort((left, right) => left - right);
+    const middle = Math.floor(totals.length / 2);
+    const median = totals.length % 2 === 0 ? (totals[middle - 1] + totals[middle]) / 2 : totals[middle];
+    const date = new Date(bucket[0].timestamp);
+
+    return {
+      day,
+      label: date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }).replace(".", ""),
+      total: median,
+      last: bucket.at(-1)?.total ?? median,
+      min: totals[0],
+      max: totals.at(-1) ?? median,
+      samples: totals.length,
+      delta: 0,
+    };
+  });
+
+  return dailyPoints.map((point, index) => ({
+    ...point,
+    delta: index === 0 ? 0 : point.total - dailyPoints[index - 1].total,
+  }));
+}
+
+function HistoryTooltip({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: DailyHistoryPoint }> }) {
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
+
+  return (
+    <div className="history-tooltip">
+      <span>{point.label} · {point.samples} замеров</span>
+      <strong>{formatUsd(point.total)}</strong>
+      <p>Последний: {formatUsd(point.last)}</p>
+      <p>Диапазон: {formatUsd(point.min)}–{formatUsd(point.max)}</p>
+    </div>
+  );
 }
 
 export function Dashboard() {
@@ -73,6 +136,7 @@ export function Dashboard() {
   const topAssets = summary.top_assets ?? [];
   const history = historyQuery.data?.points ?? [];
   const chartData = buildPortfolioChartData(history);
+  const dailyHistoryData = buildDailyHistoryData(chartData);
   const movementData = chartData.map((point, index) => {
     const previous = chartData[index - 1]?.total ?? point.total;
     return {
@@ -163,18 +227,36 @@ export function Dashboard() {
       </article>
 
       <article className="content-band history-card">
-        <SectionHeader eyebrow="History" title="Portfolio timeline" />
+        <SectionHeader
+          eyebrow="History"
+          title="Portfolio по дням"
+          actions={dailyHistoryData.length > 0 ? <span className="history-sample-count">{chartData.length} замеров · {dailyHistoryData.length} дн.</span> : null}
+        />
         {history.length === 0 ? (
           <PageState title={copy.noHistory} message="Create the first snapshot." />
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ left: -18, right: 12, top: 18, bottom: 4 }}>
-              <XAxis dataKey="label" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip formatter={(value) => formatUsd(Number(value))} labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel ?? ""} />
-              <Line type="linear" dataKey="total" stroke="#ec6046" strokeWidth={4} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="history-chart" role="img" aria-label="Гистограмма типичной стоимости портфеля по дням">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={dailyHistoryData} margin={{ left: 0, right: 8, top: 18, bottom: 4 }} barCategoryGap="24%">
+                <CartesianGrid vertical={false} stroke="#eee9e5" strokeDasharray="4 6" />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
+                <YAxis axisLine={false} tickLine={false} width={72} tickFormatter={(value) => formatUsd(Number(value))} />
+                <Tooltip
+                  cursor={{ fill: "rgba(236, 96, 70, 0.06)" }}
+                  content={<HistoryTooltip />}
+                />
+                <Bar dataKey="total" name="Типичное значение" radius={[8, 8, 3, 3]} maxBarSize={54}>
+                  {dailyHistoryData.map((point) => (
+                    <Cell key={point.day} fill={point.delta < 0 ? "#ec6046" : "#2bbf6a"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="history-legend" aria-hidden="true">
+              <span><i className="up" />Рост или без изменений</span>
+              <span><i className="down" />Снижение</span>
+            </div>
+          </div>
         )}
       </article>
 
