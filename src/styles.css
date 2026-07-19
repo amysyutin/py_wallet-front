@@ -448,6 +448,76 @@ select:focus {
   grid-column: span 7;
 }
 
+.history-sample-count {
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #706d6b;
+  background: #f7f3f0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.history-chart {
+  margin-top: 8px;
+}
+
+.history-tooltip {
+  min-width: 190px;
+  border: 1px solid #eee7e2;
+  border-radius: 16px;
+  padding: 12px 14px;
+  color: #181716;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 32px rgba(32, 28, 24, 0.12);
+}
+
+.history-tooltip span,
+.history-tooltip p {
+  color: #77736f;
+  font-size: 0.78rem;
+}
+
+.history-tooltip strong {
+  display: block;
+  margin: 5px 0 7px;
+  font-size: 1.15rem;
+}
+
+.history-tooltip p {
+  margin: 3px 0 0;
+}
+
+.history-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 4px;
+  color: #77736f;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.history-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.history-legend .up {
+  background: #2bbf6a;
+}
+
+.history-legend .down {
+  background: #ec6046;
+}
+
 .chart-grid {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(190px, 0.9fr);
