@@ -448,14 +448,36 @@ select:focus {
   grid-column: span 7;
 }
 
-.history-sample-count {
+.history-periods {
+  display: flex;
+  gap: 4px;
   border-radius: 999px;
-  padding: 8px 12px;
-  color: #706d6b;
+  padding: 4px;
   background: #f7f3f0;
-  font-size: 0.82rem;
-  font-weight: 800;
-  white-space: nowrap;
+}
+
+.history-periods button {
+  min-width: 42px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 10px;
+  color: #77736f;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.history-periods button:hover {
+  color: #181716;
+}
+
+.history-periods button.active {
+  color: #ffffff;
+  background: #181716;
+  box-shadow: 0 5px 14px rgba(24, 23, 22, 0.18);
 }
 
 .history-chart {
@@ -482,6 +504,14 @@ select:focus {
   display: block;
   margin: 5px 0 7px;
   font-size: 1.15rem;
+}
+
+.history-tooltip strong.positive {
+  color: #16864a;
+}
+
+.history-tooltip strong.negative {
+  color: #d94733;
 }
 
 .history-tooltip p {
@@ -516,6 +546,19 @@ select:focus {
 
 .history-legend .down {
   background: #ec6046;
+}
+
+.history-legend .trend {
+  width: 14px;
+  height: 3px;
+  border-radius: 999px;
+  background: #181716;
+}
+
+.history-value-label {
+  fill: #615d5a;
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
 .chart-grid {
