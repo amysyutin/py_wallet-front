@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Clock3,
@@ -7,13 +8,16 @@ import {
 } from "lucide-react";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Area,
   AreaChart,
+  LabelList,
+  Line,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -27,18 +31,17 @@ import { formatUsd, toNumber } from "../lib/format";
 import { usePageCopy } from "../telegram/i18n";
 
 const colors = ["#ec6046", "#f2a35e", "#161616", "#d9cfc8", "#8f9b92"];
+const historyPeriods = [7, 14, 30, 90] as const;
 
 type PortfolioChartPoint = ReturnType<typeof buildPortfolioChartData>[number];
 
 type DailyHistoryPoint = {
   day: string;
   label: string;
+  fullLabel: string;
   total: number;
-  last: number;
-  min: number;
-  max: number;
-  samples: number;
-  delta: number;
+  previousTotal: number | null;
+  delta: number | null;
 };
 
 function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd: string }>) {
@@ -74,27 +77,32 @@ function buildDailyHistoryData(points: PortfolioChartPoint[]): DailyHistoryPoint
   }
 
   const dailyPoints = Array.from(byDay.entries()).map(([day, bucket]) => {
-    const totals = bucket.map((point) => point.total).sort((left, right) => left - right);
-    const middle = Math.floor(totals.length / 2);
-    const median = totals.length % 2 === 0 ? (totals[middle - 1] + totals[middle]) / 2 : totals[middle];
     const date = new Date(bucket[0].timestamp);
+    const total = bucket.at(-1)?.total ?? 0;
 
     return {
       day,
       label: date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }).replace(".", ""),
-      total: median,
-      last: bucket.at(-1)?.total ?? median,
-      min: totals[0],
-      max: totals.at(-1) ?? median,
-      samples: totals.length,
-      delta: 0,
+      fullLabel: date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }),
+      total,
+      previousTotal: null,
+      delta: null,
     };
   });
 
-  return dailyPoints.map((point, index) => ({
-    ...point,
-    delta: index === 0 ? 0 : point.total - dailyPoints[index - 1].total,
-  }));
+  return dailyPoints.map((point, index) => {
+    const previousTotal = dailyPoints[index - 1]?.total ?? null;
+    return {
+      ...point,
+      previousTotal,
+      delta: previousTotal === null ? null : point.total - previousTotal,
+    };
+  });
+}
+
+function formatSignedUsd(value: number | null) {
+  if (value === null) return "Нет предыдущей даты";
+  return value > 0 ? `+${formatUsd(value)}` : formatUsd(value);
 }
 
 function HistoryTooltip({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: DailyHistoryPoint }> }) {
@@ -103,20 +111,22 @@ function HistoryTooltip({ active, payload }: { active?: boolean; payload?: Reado
 
   return (
     <div className="history-tooltip">
-      <span>{point.label} · {point.samples} замеров</span>
-      <strong>{formatUsd(point.total)}</strong>
-      <p>Последний: {formatUsd(point.last)}</p>
-      <p>Диапазон: {formatUsd(point.min)}–{formatUsd(point.max)}</p>
+      <span>{point.fullLabel}</span>
+      <strong className={point.delta !== null && point.delta < 0 ? "negative" : "positive"}>{formatSignedUsd(point.delta)}</strong>
+      <p>Портфель: {formatUsd(point.total)}</p>
+      {point.previousTotal !== null ? <p>День до этого: {formatUsd(point.previousTotal)}</p> : null}
     </div>
   );
 }
 
 export function Dashboard() {
   const copy = usePageCopy();
+  const [historyDays, setHistoryDays] = useState<(typeof historyPeriods)[number]>(30);
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
   const historyQuery = useQuery({
-    queryKey: ["portfolio", "history", 30],
-    queryFn: () => getPortfolioHistory({ days: 30 }),
+    queryKey: ["portfolio", "history", historyDays],
+    queryFn: () => getPortfolioHistory({ days: historyDays + 1 }),
+    placeholderData: (previousData) => previousData,
   });
 
   if (summaryQuery.isLoading) {
@@ -136,7 +146,7 @@ export function Dashboard() {
   const topAssets = summary.top_assets ?? [];
   const history = historyQuery.data?.points ?? [];
   const chartData = buildPortfolioChartData(history);
-  const dailyHistoryData = buildDailyHistoryData(chartData);
+  const dailyHistoryData = buildDailyHistoryData(chartData).slice(-historyDays);
   const movementData = chartData.map((point, index) => {
     const previous = chartData[index - 1]?.total ?? point.total;
     return {
@@ -166,7 +176,7 @@ export function Dashboard() {
         <div className="snapshot-card-header">
           <div>
             <p className="eyebrow">Snapshots</p>
-            <h2>30-day value</h2>
+            <h2>{historyDays}-day value</h2>
           </div>
           <strong>{chartData.length > 0 ? formatUsd(chartData.at(-1)?.total) : formatUsd(0)}</strong>
         </div>
@@ -229,32 +239,55 @@ export function Dashboard() {
       <article className="content-band history-card">
         <SectionHeader
           eyebrow="History"
-          title="Portfolio по дням"
-          actions={dailyHistoryData.length > 0 ? <span className="history-sample-count">{chartData.length} замеров · {dailyHistoryData.length} дн.</span> : null}
+          title="Изменение по дням"
+          actions={
+            <div className="history-periods" role="group" aria-label="Период истории портфеля">
+              {historyPeriods.map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  className={historyDays === days ? "active" : ""}
+                  aria-pressed={historyDays === days}
+                  onClick={() => setHistoryDays(days)}
+                >
+                  {days}д
+                </button>
+              ))}
+            </div>
+          }
         />
-        {history.length === 0 ? (
+        {historyQuery.isLoading ? (
+          <PageState title="Загружаем историю" />
+        ) : history.length === 0 ? (
           <PageState title={copy.noHistory} message="Create the first snapshot." />
         ) : (
-          <div className="history-chart" role="img" aria-label="Гистограмма типичной стоимости портфеля по дням">
+          <div className="history-chart" role="img" aria-label={`График изменения портфеля по дням за ${historyDays} дней`} aria-busy={historyQuery.isFetching}>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dailyHistoryData} margin={{ left: 0, right: 8, top: 18, bottom: 4 }} barCategoryGap="24%">
+              <ComposedChart data={dailyHistoryData} margin={{ left: 0, right: 8, top: 28, bottom: 4 }} barCategoryGap="24%">
                 <CartesianGrid vertical={false} stroke="#eee9e5" strokeDasharray="4 6" />
                 <XAxis dataKey="label" axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
-                <YAxis axisLine={false} tickLine={false} width={72} tickFormatter={(value) => formatUsd(Number(value))} />
+                <YAxis axisLine={false} tickLine={false} width={76} tickFormatter={(value) => formatSignedUsd(Number(value))} />
+                <ReferenceLine y={0} stroke="#aaa29d" strokeWidth={1.5} />
                 <Tooltip
                   cursor={{ fill: "rgba(236, 96, 70, 0.06)" }}
                   content={<HistoryTooltip />}
                 />
-                <Bar dataKey="total" name="Типичное значение" radius={[8, 8, 3, 3]} maxBarSize={54}>
+                <Bar dataKey="delta" name="Изменение за день" radius={[6, 6, 3, 3]} maxBarSize={42}>
                   {dailyHistoryData.map((point) => (
-                    <Cell key={point.day} fill={point.delta < 0 ? "#ec6046" : "#2bbf6a"} />
+                    <Cell key={point.day} fill={point.delta !== null && point.delta < 0 ? "#ec6046" : "#2bbf6a"} />
                   ))}
                 </Bar>
-              </BarChart>
+                <Line type="linear" dataKey="delta" name="Динамика" stroke="#181716" strokeWidth={2.5} connectNulls={false} dot={{ r: 4, fill: "#ffffff", stroke: "#181716", strokeWidth: 2 }} activeDot={{ r: 6 }}>
+                  {dailyHistoryData.length <= 14 ? (
+                    <LabelList dataKey="delta" position="top" formatter={(value: unknown) => formatSignedUsd(Number(value))} className="history-value-label" />
+                  ) : null}
+                </Line>
+              </ComposedChart>
             </ResponsiveContainer>
             <div className="history-legend" aria-hidden="true">
-              <span><i className="up" />Рост или без изменений</span>
+              <span><i className="up" />Плюс за день</span>
               <span><i className="down" />Снижение</span>
+              <span><i className="trend" />Линия изменений</span>
             </div>
           </div>
         )}
