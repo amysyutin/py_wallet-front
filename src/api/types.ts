@@ -2,7 +2,7 @@ export type UserRole = "user" | "admin";
 
 export type UserRead = {
   id: number;
-  email: string;
+  email: string | null;
   role: UserRole;
   created_at: string;
 };
