@@ -7,17 +7,15 @@ import {
   WalletCards,
 } from "lucide-react";
 import {
-  Bar,
   CartesianGrid,
   Cell,
-  ComposedChart,
   Area,
   AreaChart,
   LabelList,
   Line,
+  LineChart,
   Pie,
   PieChart,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -39,9 +37,10 @@ type DailyHistoryPoint = {
   day: string;
   label: string;
   fullLabel: string;
-  total: number;
+  total: number | null;
   previousTotal: number | null;
   delta: number | null;
+  hasSnapshot: boolean;
 };
 
 function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd: string }>) {
@@ -65,37 +64,50 @@ function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd:
     });
 }
 
-function buildDailyHistoryData(points: PortfolioChartPoint[]): DailyHistoryPoint[] {
+function localDayKey(date: Date) {
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
+
+function buildDailyHistoryData(points: PortfolioChartPoint[], days: number): DailyHistoryPoint[] {
   const byDay = new Map<string, PortfolioChartPoint[]>();
 
   for (const point of points) {
     const date = new Date(point.timestamp);
-    const day = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+    const day = localDayKey(date);
     const bucket = byDay.get(day) ?? [];
     bucket.push(point);
     byDay.set(day, bucket);
   }
 
-  const dailyPoints = Array.from(byDay.entries()).map(([day, bucket]) => {
-    const date = new Date(bucket[0].timestamp);
-    const total = bucket.at(-1)?.total ?? 0;
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const dates = Array.from({ length: days }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (days - index - 1));
+    return date;
+  });
+  const firstDay = localDayKey(dates[0]);
+  const earlierDay = Array.from(byDay.keys()).filter((day) => day < firstDay).sort().at(-1);
+  let previousTotal = earlierDay ? byDay.get(earlierDay)?.at(-1)?.total ?? null : null;
 
-    return {
+  return dates.map((date) => {
+    const day = localDayKey(date);
+    const bucket = byDay.get(day);
+    const hasSnapshot = Boolean(bucket?.length);
+    const total = bucket?.at(-1)?.total ?? previousTotal;
+    const delta = total === null || previousTotal === null ? null : total - previousTotal;
+    const point = {
       day,
       label: date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }).replace(".", ""),
       fullLabel: date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }),
       total,
-      previousTotal: null,
-      delta: null,
+      previousTotal,
+      delta,
+      hasSnapshot,
     };
-  });
-
-  return dailyPoints.map((point, index) => {
-    const previousTotal = dailyPoints[index - 1]?.total ?? null;
+    previousTotal = total;
     return {
       ...point,
-      previousTotal,
-      delta: previousTotal === null ? null : point.total - previousTotal,
     };
   });
 }
@@ -113,19 +125,30 @@ function HistoryTooltip({ active, payload }: { active?: boolean; payload?: Reado
     <div className="history-tooltip">
       <span>{point.fullLabel}</span>
       <strong className={point.delta !== null && point.delta < 0 ? "negative" : "positive"}>{formatSignedUsd(point.delta)}</strong>
-      <p>Портфель: {formatUsd(point.total)}</p>
+      {point.total !== null ? <p>Портфель: {formatUsd(point.total)}</p> : null}
       {point.previousTotal !== null ? <p>День до этого: {formatUsd(point.previousTotal)}</p> : null}
+      {!point.hasSnapshot ? <em>Нового snapshot не было</em> : null}
     </div>
   );
+}
+
+function HistoryDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: DailyHistoryPoint }) {
+  if (cx === undefined || cy === undefined || !payload || payload.total === null) return null;
+  const fill = !payload.hasSnapshot ? "#aaa29d" : payload.delta !== null && payload.delta < 0 ? "#ec6046" : "#2bbf6a";
+  return <circle cx={cx} cy={cy} r={4.5} fill={fill} stroke="#ffffff" strokeWidth={2} />;
 }
 
 export function Dashboard() {
   const copy = usePageCopy();
   const [historyDays, setHistoryDays] = useState<(typeof historyPeriods)[number]>(30);
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
+  const snapshotHistoryQuery = useQuery({
+    queryKey: ["portfolio", "history", "snapshot-card", 30],
+    queryFn: () => getPortfolioHistory({ days: 30 }),
+  });
   const historyQuery = useQuery({
-    queryKey: ["portfolio", "history", historyDays],
-    queryFn: () => getPortfolioHistory({ days: historyDays + 1 }),
+    queryKey: ["portfolio", "history", "daily", historyDays],
+    queryFn: () => getPortfolioHistory({ days: historyDays + 2 }),
     placeholderData: (previousData) => previousData,
   });
 
@@ -145,10 +168,11 @@ export function Dashboard() {
 
   const topAssets = summary.top_assets ?? [];
   const history = historyQuery.data?.points ?? [];
-  const chartData = buildPortfolioChartData(history);
-  const dailyHistoryData = buildDailyHistoryData(chartData).slice(-historyDays);
-  const movementData = chartData.map((point, index) => {
-    const previous = chartData[index - 1]?.total ?? point.total;
+  const snapshotChartData = buildPortfolioChartData(snapshotHistoryQuery.data?.points ?? []);
+  const historyChartData = buildPortfolioChartData(history);
+  const dailyHistoryData = buildDailyHistoryData(historyChartData, historyDays);
+  const movementData = snapshotChartData.map((point, index) => {
+    const previous = snapshotChartData[index - 1]?.total ?? point.total;
     return {
       ...point,
       delta: point.total - previous,
@@ -176,18 +200,18 @@ export function Dashboard() {
         <div className="snapshot-card-header">
           <div>
             <p className="eyebrow">Snapshots</p>
-            <h2>{historyDays}-day value</h2>
+            <h2>30-day value</h2>
           </div>
-          <strong>{chartData.length > 0 ? formatUsd(chartData.at(-1)?.total) : formatUsd(0)}</strong>
+          <strong>{snapshotChartData.length > 0 ? formatUsd(snapshotChartData.at(-1)?.total) : formatUsd(0)}</strong>
         </div>
-        {chartData.length === 0 ? (
+        {snapshotChartData.length === 0 ? (
           <div className="compact-empty">
             <span>{copy.noSnapshots}</span>
             <p>Создайте первый snapshot, чтобы увидеть график портфеля.</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={118}>
-            <AreaChart data={chartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
+            <AreaChart data={snapshotChartData} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="snapshotFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#ec6046" stopOpacity={0.28} />
@@ -239,7 +263,7 @@ export function Dashboard() {
       <article className="content-band history-card">
         <SectionHeader
           eyebrow="History"
-          title="Изменение по дням"
+          title="Стоимость по дням"
           actions={
             <div className="history-periods" role="group" aria-label="Период истории портфеля">
               {historyPeriods.map((days) => (
@@ -263,32 +287,27 @@ export function Dashboard() {
         ) : (
           <div className="history-chart" role="img" aria-label={`График изменения портфеля по дням за ${historyDays} дней`} aria-busy={historyQuery.isFetching}>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={dailyHistoryData} margin={{ left: 0, right: 8, top: 28, bottom: 4 }} barCategoryGap="24%">
+              <LineChart data={dailyHistoryData} margin={{ left: 0, right: 8, top: 34, bottom: 4 }}>
                 <CartesianGrid vertical={false} stroke="#eee9e5" strokeDasharray="4 6" />
                 <XAxis dataKey="label" axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
-                <YAxis axisLine={false} tickLine={false} width={76} tickFormatter={(value) => formatSignedUsd(Number(value))} />
-                <ReferenceLine y={0} stroke="#aaa29d" strokeWidth={1.5} />
+                <YAxis axisLine={false} tickLine={false} width={76} tickFormatter={(value) => formatUsd(Number(value))} domain={["auto", "auto"]} />
                 <Tooltip
-                  cursor={{ fill: "rgba(236, 96, 70, 0.06)" }}
+                  cursor={{ stroke: "#d9cfc8", strokeDasharray: "4 4" }}
                   content={<HistoryTooltip />}
                 />
-                <Bar dataKey="delta" name="Изменение за день" radius={[6, 6, 3, 3]} maxBarSize={42}>
-                  {dailyHistoryData.map((point) => (
-                    <Cell key={point.day} fill={point.delta !== null && point.delta < 0 ? "#ec6046" : "#2bbf6a"} />
-                  ))}
-                </Bar>
-                <Line type="linear" dataKey="delta" name="Динамика" stroke="#181716" strokeWidth={2.5} connectNulls={false} dot={{ r: 4, fill: "#ffffff", stroke: "#181716", strokeWidth: 2 }} activeDot={{ r: 6 }}>
+                <Line type="linear" dataKey="total" name="Стоимость портфеля" stroke="#181716" strokeWidth={3} connectNulls={false} dot={<HistoryDot />} activeDot={{ r: 6, fill: "#181716" }}>
                   {dailyHistoryData.length <= 14 ? (
-                    <LabelList dataKey="delta" position="top" formatter={(value: unknown) => formatSignedUsd(Number(value))} className="history-value-label" />
+                    <LabelList dataKey="delta" position="top" formatter={(value: unknown) => value === null ? "" : formatSignedUsd(Number(value))} className="history-value-label" />
                   ) : null}
                 </Line>
-              </ComposedChart>
+              </LineChart>
             </ResponsiveContainer>
             <div className="history-legend" aria-hidden="true">
-              <span><i className="up" />Плюс за день</span>
+              <span><i className="up" />Рост</span>
               <span><i className="down" />Снижение</span>
-              <span><i className="trend" />Линия изменений</span>
+              <span><i className="carried" />Без нового snapshot</span>
             </div>
+            <p className="history-note">Линия показывает стоимость портфеля на конец дня, подпись у точки — изменение относительно предыдущей даты.</p>
           </div>
         )}
       </article>

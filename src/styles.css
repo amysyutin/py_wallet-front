@@ -518,6 +518,15 @@ select:focus {
   margin: 3px 0 0;
 }
 
+.history-tooltip em {
+  display: block;
+  margin-top: 8px;
+  color: #aaa29d;
+  font-size: 0.74rem;
+  font-style: normal;
+  font-weight: 750;
+}
+
 .history-legend {
   display: flex;
   justify-content: flex-end;
@@ -548,17 +557,21 @@ select:focus {
   background: #ec6046;
 }
 
-.history-legend .trend {
-  width: 14px;
-  height: 3px;
-  border-radius: 999px;
-  background: #181716;
+.history-legend .carried {
+  background: #aaa29d;
 }
 
 .history-value-label {
   fill: #615d5a;
   font-size: 0.7rem;
   font-weight: 800;
+}
+
+.history-note {
+  margin: 10px 0 0;
+  color: #8c8987;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .chart-grid {
