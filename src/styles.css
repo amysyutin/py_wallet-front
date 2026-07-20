@@ -823,6 +823,49 @@ select:focus {
   font-weight: 800;
 }
 
+.account-settings-page {
+  display: grid;
+  gap: 20px;
+  width: min(680px, 100%);
+}
+
+.account-settings-page > header p:last-child {
+  margin-top: 8px;
+}
+
+.password-settings-card {
+  display: grid;
+  gap: 18px;
+  border: 1px solid #eeecea;
+  border-radius: 24px;
+  padding: 24px;
+  background: #ffffff;
+  box-shadow: 0 12px 34px rgba(25, 20, 16, 0.05);
+}
+
+.password-settings-card h2,
+.password-settings-card p {
+  margin: 0;
+}
+
+.password-settings-form {
+  display: grid;
+  gap: 14px;
+}
+
+.password-settings-form label {
+  display: grid;
+  gap: 7px;
+  color: #706d6b;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.password-settings-form .primary-button {
+  width: 100%;
+  margin-top: 4px;
+}
+
 .toggle {
   display: inline-flex;
   align-items: center;

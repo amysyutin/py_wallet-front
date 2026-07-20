@@ -9,6 +9,7 @@ import {
   type TelegramSettings as TelegramSettingsData,
 } from "../api/telegram";
 import { getMe } from "../api/auth";
+import { ChangePasswordForm } from "../components/ChangePasswordForm";
 import { useAuthStore } from "../store/auth";
 import { telegramCopy, useLanguage, type AppLanguage } from "../telegram/i18n";
 import { requestTelegramWriteAccess } from "../telegram/runtime";
@@ -121,7 +122,7 @@ export function TelegramSettings() {
           {linkMutation.isSuccess ? <p className="form-success">{copy.linked}</p> : null}
           <button className="chip" type="submit" disabled={linkMutation.isPending}><Link2 size={17} />{copy.link}</button>
         </form>
-      </section> : null}
+      </section> : <ChangePasswordForm language={language} telegram />}
     </div>
   );
 }
