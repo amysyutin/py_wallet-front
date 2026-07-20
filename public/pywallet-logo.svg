@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">PyWallet</title>
+  <desc id="description">White wallet mark on an orange gradient tile</desc>
+  <defs>
+    <linearGradient id="background" x1="70" y1="54" x2="454" y2="466" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFA34F"/>
+      <stop offset="1" stop-color="#E9521C"/>
+    </linearGradient>
+  </defs>
+  <rect x="28" y="28" width="456" height="456" rx="132" fill="url(#background)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="142" y="142" width="228" height="228" rx="28"/>
+    <path d="M142 218c0-14.4 11.6-26 26-26h176c14.4 0 26 11.6 26 26"/>
+    <path d="M142 244h38c14 0 27.5 5.4 37.6 15.1l13.9 13.2c13.6 12.9 35 12.9 48.6 0l13.9-13.2c10.1-9.7 23.6-15.1 37.6-15.1H370"/>
+  </g>
+</svg>
