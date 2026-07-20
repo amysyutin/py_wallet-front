@@ -4,6 +4,7 @@ import { ProtectedRoute } from "../routes/ProtectedRoute";
 import { AppLayout } from "../components/AppLayout";
 import { RouteError } from "../components/RouteError";
 import { AdminBinance } from "../pages/AdminBinance";
+import { AccountSettings } from "../pages/AccountSettings";
 import { Dashboard } from "../pages/Dashboard";
 import { Explore } from "../pages/Explore";
 import { Groups } from "../pages/Groups";
@@ -16,7 +17,7 @@ import { TelegramAuth } from "../telegram/TelegramAuth";
 import { TelegramLayout } from "../telegram/TelegramLayout";
 
 const router = createBrowserRouter([
-  { path: "/", element: <ProtectedRoute><AppLayout /></ProtectedRoute>, errorElement: <RouteError />, children: [{ index: true, element: <Dashboard /> }, { path: "groups", element: <Groups /> }, { path: "wallets", element: <Wallets /> }, { path: "wallets/:walletId", element: <WalletDetail /> }, { path: "explore", element: <Explore /> }, { path: "admin/binance", element: <AdminRoute><AdminBinance /></AdminRoute> }] },
+  { path: "/", element: <ProtectedRoute><AppLayout /></ProtectedRoute>, errorElement: <RouteError />, children: [{ index: true, element: <Dashboard /> }, { path: "groups", element: <Groups /> }, { path: "wallets", element: <Wallets /> }, { path: "wallets/:walletId", element: <WalletDetail /> }, { path: "explore", element: <Explore /> }, { path: "settings", element: <AccountSettings /> }, { path: "admin/binance", element: <AdminRoute><AdminBinance /></AdminRoute> }] },
   {
     path: "/telegram",
     element: <TelegramAuth><ProtectedRoute unauthenticatedTo="/telegram"><TelegramLayout /></ProtectedRoute></TelegramAuth>,

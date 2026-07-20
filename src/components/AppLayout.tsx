@@ -6,6 +6,7 @@ import {
   Menu,
   Plus,
   Search,
+  Settings,
   Shield,
   Tags,
   WalletCards,
@@ -47,6 +48,10 @@ export function AppLayout() {
             <NavLink to="/explore" aria-label="Explore">
               <Search size={19} />
               <span>Explore</span>
+            </NavLink>
+            <NavLink to="/settings" aria-label="Настройки">
+              <Settings size={19} />
+              <span>Настройки</span>
             </NavLink>
             {user?.role === "admin" ? (
               <NavLink to="/admin/binance" aria-label="Binance">
