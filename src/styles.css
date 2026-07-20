@@ -1796,12 +1796,20 @@ select:focus {
 /* Telegram Mini App shell. Telegram theme variables deliberately only affect this route. */
 .telegram-stage,
 .telegram-gate {
-  --telegram-accent: #f47a32;
+  --telegram-accent: var(--tg-theme-button-color, #ec6046);
+  --telegram-page: var(--tg-theme-bg-color, #f7f7f6);
+  --telegram-surface: var(--tg-theme-section-bg-color, var(--tg-theme-secondary-bg-color, #ffffff));
+  --telegram-surface-soft: color-mix(in srgb, var(--telegram-surface) 94%, var(--tg-theme-text-color, #181716) 6%);
+  --telegram-text: var(--tg-theme-text-color, #181716);
+  --telegram-muted: var(--tg-theme-subtitle-text-color, var(--tg-theme-hint-color, #77736f));
+  --telegram-border: color-mix(in srgb, var(--telegram-text), transparent 88%);
+  --telegram-button: var(--tg-theme-button-color, #ec6046);
+  --telegram-button-text: var(--tg-theme-button-text-color, #ffffff);
   min-width: 320px;
   min-height: 100vh;
   min-height: 100dvh;
-  color: var(--tg-theme-text-color, #181716);
-  background: var(--tg-theme-bg-color, #f7f7f6);
+  color: var(--telegram-text);
+  background: var(--telegram-page);
 }
 
 .telegram-stage {
@@ -1822,7 +1830,8 @@ select:focus {
   justify-content: space-between;
   min-height: 62px;
   padding: 8px 4px 10px;
-  background: var(--tg-theme-header-bg-color, var(--tg-theme-bg-color, #f7f7f6));
+  color: var(--telegram-text);
+  background: var(--tg-theme-header-bg-color, var(--telegram-page));
 }
 
 .telegram-brand,
@@ -1840,7 +1849,7 @@ select:focus {
 .telegram-brand small {
   max-width: 220px;
   overflow: hidden;
-  color: var(--tg-theme-hint-color, #77736f);
+  color: var(--telegram-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1876,10 +1885,11 @@ select:focus {
   place-items: center;
   width: 40px;
   height: 40px;
-  border: 2px solid color-mix(in srgb, var(--telegram-accent), transparent 75%);
+  border: 2px solid color-mix(in srgb, var(--telegram-button), transparent 70%);
   border-radius: 50%;
   color: #fff;
-  background: var(--telegram-accent);
+  color: var(--telegram-button-text);
+  background: var(--telegram-button);
   font-weight: 850;
 }
 
@@ -1898,8 +1908,8 @@ select:focus {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   min-height: 70px;
   padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-  border-top: 1px solid color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 88%);
-  background: color-mix(in srgb, var(--tg-theme-bottom-bar-bg-color, var(--tg-theme-bg-color, #fff)) 94%, transparent);
+  border-top: 1px solid var(--telegram-border);
+  background: var(--tg-theme-bottom-bar-bg-color, var(--telegram-surface));
   backdrop-filter: blur(18px);
 }
 
@@ -1910,12 +1920,12 @@ select:focus {
   justify-content: center;
   gap: 3px;
   min-width: 0;
-  color: var(--tg-theme-hint-color, #77736f);
+  color: var(--telegram-muted);
   font-size: 0.68rem;
 }
 
 .telegram-bottom-nav a.active {
-  color: var(--tg-theme-accent-text-color, var(--telegram-accent));
+  color: var(--telegram-button);
 }
 
 .telegram-gate {
@@ -1929,7 +1939,13 @@ select:focus {
   justify-items: center;
   gap: 14px;
   width: min(390px, 100%);
+  border: 1px solid var(--telegram-border);
+  border-radius: 28px;
+  padding: 28px 22px;
+  color: var(--telegram-text);
+  background: var(--telegram-surface);
   text-align: center;
+  box-shadow: 0 16px 42px color-mix(in srgb, var(--telegram-text), transparent 92%);
 }
 
 .telegram-gate-card h1,
@@ -1938,7 +1954,7 @@ select:focus {
 }
 
 .telegram-gate-card p {
-  color: var(--tg-theme-hint-color, #77736f);
+  color: var(--telegram-muted);
 }
 
 .telegram-settings-grid {
@@ -1950,9 +1966,10 @@ select:focus {
   display: grid;
   gap: 16px;
   padding: 18px;
-  border: 1px solid color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 90%);
+  border: 1px solid var(--telegram-border);
   border-radius: 24px;
-  background: var(--tg-theme-secondary-bg-color, #fff);
+  color: var(--telegram-text);
+  background: var(--telegram-surface);
   box-shadow: 0 12px 34px rgba(25, 20, 16, 0.05);
 }
 
@@ -1963,8 +1980,8 @@ select:focus {
 
 .telegram-settings-card .primary-button {
   width: 100%;
-  background: var(--tg-theme-button-color, var(--telegram-accent));
-  color: var(--tg-theme-button-text-color, #fff);
+  background: var(--telegram-button);
+  color: var(--telegram-button-text);
 }
 
 .telegram-settings-card > .chip {
@@ -1977,20 +1994,20 @@ select:focus {
 
 .telegram-card-title > svg {
   flex: 0 0 auto;
-  color: var(--telegram-accent);
+  color: var(--telegram-button);
 }
 
 .telegram-card-title p {
   margin-top: 4px;
-  color: var(--tg-theme-hint-color, #77736f);
+  color: var(--telegram-muted);
   font-size: 0.88rem;
 }
 
 .digest-status {
   border-radius: 14px;
   padding: 11px 13px;
-  color: var(--tg-theme-hint-color, #77736f);
-  background: color-mix(in srgb, var(--tg-theme-hint-color, #77736f), transparent 91%);
+  color: var(--telegram-muted);
+  background: var(--telegram-surface-soft);
   font-size: 0.86rem;
   font-weight: 750;
 }
@@ -2008,7 +2025,7 @@ select:focus {
 .telegram-settings-form label {
   display: grid;
   gap: 6px;
-  color: var(--tg-theme-hint-color, #77736f);
+  color: var(--telegram-muted);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -2016,19 +2033,19 @@ select:focus {
 .telegram-settings-form input,
 .telegram-settings-form select {
   width: 100%;
-  border-color: color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 86%);
-  color: var(--tg-theme-text-color, #181716);
-  background: var(--tg-theme-bg-color, #f8f7f5);
+  border-color: var(--telegram-border);
+  color: var(--telegram-text);
+  background: var(--telegram-surface-soft);
 }
 
 .telegram-settings-form small {
-  color: var(--tg-theme-hint-color, #77736f);
+  color: var(--telegram-muted);
 }
 
 .telegram-settings-form .chip {
   justify-self: stretch;
-  color: var(--tg-theme-button-text-color, #fff);
-  background: var(--tg-theme-button-color, var(--telegram-accent));
+  color: var(--telegram-button-text);
+  background: var(--telegram-button);
 }
 
 .telegram-stage .dashboard-grid {
@@ -2051,8 +2068,88 @@ select:focus {
 .telegram-stage .metric,
 .telegram-stage .mini-card,
 .telegram-stage .state-panel {
-  border-color: color-mix(in srgb, var(--tg-theme-text-color, #181716), transparent 90%);
-  background: var(--tg-theme-secondary-bg-color, #fff);
+  border-color: var(--telegram-border);
+  color: var(--telegram-text);
+  background: var(--telegram-surface);
+}
+
+.telegram-stage :where(.eyebrow, .muted, .metric span, .table-row span, .asset-row em, .hero-copy span, .compact-empty p, .mini-card span, .wallet-balance-cell span, .wallet-assets-preview, .live-balance-button, .toggle, .history-note, .history-legend) {
+  color: var(--telegram-muted);
+}
+
+.telegram-stage :where(.primary-button, .accent-button, .open-wallet-button) {
+  color: var(--telegram-button-text);
+  background: var(--telegram-button);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--telegram-button), transparent 76%);
+}
+
+.telegram-stage :where(.primary-button, .accent-button, .open-wallet-button):focus-visible,
+.telegram-stage .history-periods button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--telegram-button), transparent 62%);
+  outline-offset: 2px;
+}
+
+.telegram-stage :where(input, select) {
+  border-color: var(--telegram-border);
+  color: var(--telegram-text);
+  background: var(--telegram-surface-soft);
+}
+
+.telegram-stage :where(input, select)::placeholder {
+  color: var(--telegram-muted);
+  opacity: 1;
+}
+
+.telegram-stage :where(input, select):focus {
+  border-color: var(--telegram-button);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--telegram-button), transparent 84%);
+}
+
+.telegram-stage :where(.date-orb, .compact-empty, .metric-icon, .history-periods, .balance-histogram, .wallet-settings-form, .icon-button, .chip) {
+  border-color: var(--telegram-border);
+  color: var(--telegram-text);
+  background: var(--telegram-surface-soft);
+}
+
+.telegram-stage .history-periods button {
+  color: var(--telegram-muted);
+}
+
+.telegram-stage .history-periods button.active {
+  color: var(--telegram-button-text);
+  background: var(--telegram-button);
+}
+
+.telegram-stage :where(.asset-row, .table-row) {
+  border-color: var(--telegram-border);
+}
+
+.telegram-stage .portfolio-health-card {
+  color: var(--telegram-text);
+  background: var(--telegram-surface);
+}
+
+.telegram-stage .portfolio-health-card :where(span, em) {
+  color: var(--telegram-muted);
+}
+
+.telegram-stage .history-tooltip {
+  border-color: var(--telegram-border);
+  color: var(--telegram-text);
+  background: var(--telegram-surface);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--telegram-text), transparent 86%);
+}
+
+.telegram-stage .history-tooltip :where(span, p, em) {
+  color: var(--telegram-muted);
+}
+
+.telegram-stage :where(.recharts-cartesian-axis-tick-value, .history-value-label) {
+  fill: var(--telegram-muted);
+}
+
+.telegram-stage .recharts-cartesian-grid line {
+  stroke: var(--telegram-border);
 }
 
 @media (min-width: 720px) {

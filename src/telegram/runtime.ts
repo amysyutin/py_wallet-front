@@ -14,20 +14,27 @@ export function isTelegramMiniApp() {
   return Boolean(getTelegramWebApp()?.initData);
 }
 
-function setThemeVariables(theme: TelegramThemeParams) {
+function setThemeVariables(theme: TelegramThemeParams, previousVariables: Set<string>) {
   const root = document.documentElement;
+  for (const name of previousVariables) root.style.removeProperty(name);
+  previousVariables.clear();
   for (const [name, value] of Object.entries(theme)) {
-    if (value) root.style.setProperty(`--tg-theme-${name.replaceAll("_", "-")}`, value);
+    if (!value) continue;
+    const property = `--tg-theme-${name.replaceAll("_", "-")}`;
+    root.style.setProperty(property, value);
+    previousVariables.add(property);
   }
-  root.style.colorScheme = getTelegramWebApp()?.colorScheme ?? "light";
 }
 
 export function initializeTelegram() {
   const webApp = getTelegramWebApp();
   if (!webApp) return () => undefined;
+  const appliedThemeVariables = new Set<string>();
 
   const applyTheme = () => {
-    setThemeVariables(webApp.themeParams);
+    setThemeVariables(webApp.themeParams, appliedThemeVariables);
+    document.documentElement.style.colorScheme = webApp.colorScheme;
+    document.documentElement.dataset.telegramColorScheme = webApp.colorScheme;
     const background = webApp.themeParams.bg_color ?? "#f7f7f6";
     webApp.setHeaderColor?.(webApp.themeParams.header_bg_color ?? background);
     webApp.setBackgroundColor?.(background);
@@ -40,7 +47,12 @@ export function initializeTelegram() {
   webApp.expand();
   webApp.disableVerticalSwipes?.();
 
-  return () => webApp.offEvent("themeChanged", applyTheme);
+  return () => {
+    webApp.offEvent("themeChanged", applyTheme);
+    for (const property of appliedThemeVariables) document.documentElement.style.removeProperty(property);
+    document.documentElement.style.removeProperty("color-scheme");
+    delete document.documentElement.dataset.telegramColorScheme;
+  };
 }
 
 export function requestTelegramWriteAccess(): Promise<boolean> {
