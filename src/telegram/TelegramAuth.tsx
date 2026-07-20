@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, RefreshCw, WalletCards } from "lucide-react";
-import type { ReactNode } from "react";
+import { useLayoutEffect, type ReactNode } from "react";
 import { getErrorMessage } from "../api/client";
 import { loginWithTelegram } from "../api/telegram";
 import { useAuthStore } from "../store/auth";
-import { getTelegramInitData } from "./runtime";
+import { getTelegramInitData, initializeTelegram } from "./runtime";
 import { telegramCopy, useLanguage } from "./i18n";
 
 export function TelegramAuth({ children }: { children: ReactNode }) {
+  useLayoutEffect(() => initializeTelegram(), []);
+
   const language = useLanguage((state) => state.language);
   const copy = telegramCopy[language];
   const setToken = useAuthStore((state) => state.setToken);

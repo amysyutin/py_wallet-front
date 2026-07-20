@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 import { telegramCopy, useLanguage } from "./i18n";
-import { getTelegramWebApp, initializeTelegram } from "./runtime";
+import { getTelegramWebApp } from "./runtime";
 
 export function TelegramLayout() {
   const location = useLocation();
@@ -11,8 +11,6 @@ export function TelegramLayout() {
   const user = useAuthStore((state) => state.user);
   const language = useLanguage((state) => state.language);
   const copy = telegramCopy[language];
-
-  useEffect(() => initializeTelegram(), []);
 
   useEffect(() => {
     const backButton = getTelegramWebApp()?.BackButton;
