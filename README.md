@@ -242,6 +242,13 @@ npm run lint
 Run ESLint checks.
 
 ```bash
+npm run test
+```
+
+Run the Vitest API, route-guard, and account-form regression suite once. Use
+`npm run test:watch` while developing.
+
+```bash
 npm run preview
 ```
 
