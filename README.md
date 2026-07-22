@@ -2,6 +2,10 @@
 
 A web frontend for **py_wallet** — a crypto portfolio monitoring dashboard built for tracking wallets, snapshots, asset allocation, and portfolio history.
 
+The component version is stored in both `VERSION` and `package.json`. A
+`vX.Y.Z` tag must match both files; the release workflow promotes the tested
+SHA image to that immutable release name and creates a GitHub Release.
+
 `py_wallet` is a read-only portfolio tool. It does **not** store private keys, sign transactions, or act as a custodial wallet. The goal is to give users a clean dashboard for understanding their crypto portfolio across EVM wallets, manual balances, and future integrations.
 
 ## Project Context
