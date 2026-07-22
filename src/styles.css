@@ -169,6 +169,13 @@ select:focus {
   gap: 24px;
 }
 
+.topbar-heading {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
 .product-title {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -190,6 +197,28 @@ select:focus {
 .product-title .eyebrow,
 .product-title h1 {
   margin: 0;
+}
+
+.compact-portfolio-value {
+  display: grid;
+  gap: 3px;
+  min-width: 128px;
+  border-left: 1px solid #e6e1dd;
+  padding-left: 24px;
+}
+
+.compact-portfolio-value span {
+  color: #8c8987;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.compact-portfolio-value strong {
+  font-size: clamp(1.15rem, 1.8vw, 1.55rem);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .topbar-actions {
@@ -1422,6 +1451,24 @@ select:focus {
   .product-title {
     flex: 1 1 auto;
     min-width: 0;
+  }
+
+  .topbar-heading {
+    flex: 1 1 auto;
+    gap: 12px;
+  }
+
+  .compact-portfolio-value {
+    min-width: 0;
+    padding-left: 12px;
+  }
+
+  .compact-portfolio-value span {
+    font-size: 0.61rem;
+  }
+
+  .compact-portfolio-value strong {
+    font-size: 1.08rem;
   }
 
   .product-title-icon {

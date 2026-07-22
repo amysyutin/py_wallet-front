@@ -11,13 +11,17 @@ import {
   Tags,
   WalletCards,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { getPortfolioSummary } from "../api/portfolio";
+import { formatUsd } from "../lib/format";
 import { useAuthStore } from "../store/auth";
 
 export function AppLayout() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
 
   function handleLogout() {
     logout();
@@ -67,12 +71,18 @@ export function AppLayout() {
 
         <section className="workspace">
           <header className="topbar">
-            <div className="product-title">
-              <span className="product-title-icon" aria-hidden="true">
-                <WalletCards size={22} />
-              </span>
-              <p className="eyebrow">Financial</p>
-              <h1>Dashboard</h1>
+            <div className="topbar-heading">
+              <div className="product-title">
+                <span className="product-title-icon" aria-hidden="true">
+                  <WalletCards size={22} />
+                </span>
+                <p className="eyebrow">Financial</p>
+                <h1>Dashboard</h1>
+              </div>
+              <div className="compact-portfolio-value" aria-label="Текущая стоимость портфеля">
+                <span>Portfolio value</span>
+                <strong>{summaryQuery.data ? formatUsd(summaryQuery.data.total_usd) : "—"}</strong>
+              </div>
             </div>
             <div className="topbar-actions">
               <button className="round-button" type="button" aria-label="Добавить">
