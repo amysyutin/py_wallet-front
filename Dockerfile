@@ -1,5 +1,7 @@
 FROM node:22-alpine AS build
 
+ARG BUILD_SHA=unknown
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -7,6 +9,7 @@ RUN npm ci
 
 COPY . .
 RUN npm run build
+RUN printf '{"build_sha":"%s"}\n' "${BUILD_SHA}" > /app/dist/version.json
 
 
 FROM nginx:1.27-alpine
