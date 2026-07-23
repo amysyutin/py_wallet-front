@@ -1,0 +1,66 @@
+.telegram-header {
+  gap: 12px;
+}
+
+.telegram-brand {
+  min-width: 0;
+}
+
+.telegram-brand > div {
+  min-width: 0;
+}
+
+.telegram-portfolio-value {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  max-width: 48%;
+  padding-left: 12px;
+  border-left: 1px solid var(--telegram-border);
+  text-align: right;
+}
+
+.telegram-portfolio-value span {
+  color: var(--telegram-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.telegram-portfolio-value strong {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 1.05rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 380px) {
+  .telegram-header {
+    gap: 8px;
+  }
+
+  .telegram-brand {
+    gap: 8px;
+  }
+
+  .telegram-wallet-logo.small {
+    width: 40px;
+    height: 40px;
+  }
+
+  .telegram-brand small {
+    max-width: 120px;
+  }
+
+  .telegram-portfolio-value {
+    padding-left: 8px;
+  }
+
+  .telegram-portfolio-value strong {
+    font-size: 0.95rem;
+  }
+}
