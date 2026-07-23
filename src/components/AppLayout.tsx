@@ -91,7 +91,7 @@ export function AppLayout() {
               <div className="profile-box">
                 <div className="avatar">{user?.email?.slice(0, 1).toUpperCase() ?? "P"}</div>
                 <div>
-                  <strong>{user?.email ?? "PyWallet user"}</strong>
+                  <strong title={user?.email ?? "PyWallet user"}>{user?.email ?? "PyWallet user"}</strong>
                   <span>Portfolio manager</span>
                 </div>
               </div>
