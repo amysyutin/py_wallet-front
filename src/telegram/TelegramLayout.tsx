@@ -1,9 +1,13 @@
 import { LayoutDashboard, MoreHorizontal, Tags, WalletCards } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { getPortfolioSummary } from "../api/portfolio";
+import { formatUsd } from "../lib/format";
 import { useAuthStore } from "../store/auth";
 import { telegramCopy, useLanguage } from "./i18n";
 import { getTelegramWebApp } from "./runtime";
+import "./TelegramLayout.css";
 
 export function TelegramLayout() {
   const location = useLocation();
@@ -11,6 +15,10 @@ export function TelegramLayout() {
   const user = useAuthStore((state) => state.user);
   const language = useLanguage((state) => state.language);
   const copy = telegramCopy[language];
+  const summaryQuery = useQuery({
+    queryKey: ["portfolio", "summary"],
+    queryFn: getPortfolioSummary,
+  });
 
   useEffect(() => {
     const backButton = getTelegramWebApp()?.BackButton;
@@ -29,7 +37,10 @@ export function TelegramLayout() {
           <span className="telegram-wallet-logo small"><WalletCards size={22} /></span>
           <div><strong>PyWallet</strong><small>{user?.email ?? "Telegram Mini App"}</small></div>
         </div>
-        <span className="telegram-avatar">{user?.email?.slice(0, 1).toUpperCase() ?? "P"}</span>
+        <div className="telegram-portfolio-value" aria-label="Portfolio value">
+          <span>Portfolio value</span>
+          <strong>{summaryQuery.data ? formatUsd(summaryQuery.data.total_usd) : "—"}</strong>
+        </div>
       </header>
       <section className="telegram-workspace"><Outlet /></section>
       <nav className="telegram-bottom-nav" aria-label="Telegram navigation">
