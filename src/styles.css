@@ -1443,12 +1443,14 @@ select:focus {
   .topbar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "product profile portfolio";
     align-items: center;
     gap: 12px;
     min-width: 0;
   }
 
   .product-title {
+    grid-area: product;
     min-width: 0;
   }
 
@@ -1457,6 +1459,7 @@ select:focus {
   }
 
   .compact-portfolio-value {
+    grid-area: portfolio;
     min-width: 0;
     padding-left: 12px;
   }
@@ -1488,6 +1491,7 @@ select:focus {
   }
 
   .profile-box {
+    grid-area: profile;
     min-width: 0;
     gap: 8px;
   }
