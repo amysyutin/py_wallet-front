@@ -14,8 +14,17 @@ export function createSnapshot(walletId?: number | null) {
 
 export const getSnapshotJob = (jobId: number) => apiFetch<SnapshotJobDetail>(`/snapshot-jobs/${jobId}`);
 
-export function getSnapshotJobs(params: { limit?: number; status?: string | null } = {}) {
+export function getSnapshotJobs(
+  params: {
+    limit?: number;
+    status?: string | null;
+    walletId?: number | null;
+    triggerType?: string | null;
+  } = {},
+) {
   const search = new URLSearchParams({ limit: String(params.limit ?? 20) });
   if (params.status) search.set("status", params.status);
+  if (params.walletId) search.set("wallet_id", String(params.walletId));
+  if (params.triggerType) search.set("trigger_type", params.triggerType);
   return apiFetch<SnapshotJobDetail[]>(`/snapshot-jobs?${search.toString()}`);
 }

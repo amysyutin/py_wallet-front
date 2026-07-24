@@ -1,18 +1,22 @@
 
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Check, Copy, ExternalLink, Plus, RefreshCw } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getErrorMessage } from "../api/client";
 import { getGroups } from "../api/groups";
+import { getSnapshotJobs } from "../api/snapshots";
 import type { ChainType, WalletType } from "../api/types";
 import { archiveWallet, createWallet, getWalletAssets, getWallets } from "../api/wallets";
+import { FirstSnapshotProgress, type FirstSnapshotProgressStatus } from "../components/FirstSnapshotProgress";
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd, shortAddress } from "../lib/format";
 import { usePageCopy } from "../telegram/i18n";
 
 const chains: ChainType[] = ["mainnet", "base", "bnb", "arbitrum", "linea", "binance"];
+const firstSnapshotLookupTimeoutMs = 15_000;
+const terminalSnapshotStatuses = new Set(["success", "partial_success", "failed"]);
 
 function hasUsableLiveBalance(data: Awaited<ReturnType<typeof getWalletAssets>> | undefined) {
   if (!data) return false;
@@ -30,9 +34,38 @@ export function Wallets() {
   const [address, setAddress] = useState("");
   const [groupId, setGroupId] = useState("");
   const [copiedWalletId, setCopiedWalletId] = useState<number | null>(null);
+  const [firstSnapshot, setFirstSnapshot] = useState<{
+    walletId: number;
+    walletLabel: string;
+    startedAt: number;
+  } | null>(null);
 
   const walletsQuery = useQuery({ queryKey: ["wallets", activeOnly], queryFn: () => getWallets({ activeOnly }) });
   const groupsQuery = useQuery({ queryKey: ["wallet-groups"], queryFn: getGroups });
+  const firstSnapshotQuery = useQuery({
+    queryKey: ["snapshot-jobs", "first-wallet", firstSnapshot?.walletId],
+    queryFn: async () => {
+      const jobs = await getSnapshotJobs({
+        limit: 1,
+        walletId: firstSnapshot?.walletId,
+        triggerType: "auto",
+      });
+      return { job: jobs[0] ?? null, checkedAt: Date.now() };
+    },
+    enabled: firstSnapshot !== null,
+    retry: false,
+    refetchInterval: (query) => {
+      if (!firstSnapshot || query.state.error) return false;
+      const result = query.state.data;
+      if (result?.job) {
+        return terminalSnapshotStatuses.has(result.job.status) ? false : 1_000;
+      }
+      if (result && result.checkedAt - firstSnapshot.startedAt >= firstSnapshotLookupTimeoutMs) {
+        return false;
+      }
+      return 1_000;
+    },
+  });
   const liveAssetsQueries = useQueries({
     queries: (walletsQuery.data ?? [])
       .filter((wallet) => wallet.wallet_type === "evm" && wallet.is_active)
@@ -50,9 +83,18 @@ export function Wallets() {
   );
   const createMutation = useMutation({
     mutationFn: createWallet,
-    onSuccess: () => {
+    onSuccess: (wallet) => {
       setLabel("");
       setAddress("");
+      setFirstSnapshot(
+        wallet.wallet_type === "evm"
+          ? {
+              walletId: wallet.id,
+              walletLabel: wallet.label,
+              startedAt: Date.now(),
+            }
+          : null,
+      );
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
     },
   });
@@ -60,6 +102,23 @@ export function Wallets() {
     mutationFn: archiveWallet,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["wallets"] }),
   });
+  const firstSnapshotJob = firstSnapshotQuery.data?.job;
+  const firstSnapshotTimedOut = Boolean(
+    firstSnapshot
+    && firstSnapshotQuery.data
+    && !firstSnapshotJob
+    && firstSnapshotQuery.data.checkedAt - firstSnapshot.startedAt >= firstSnapshotLookupTimeoutMs,
+  );
+  const firstSnapshotStatus: FirstSnapshotProgressStatus | string | null = firstSnapshot
+    ? firstSnapshotJob?.status
+      ?? (firstSnapshotQuery.isError || firstSnapshotTimedOut ? "unavailable" : "starting")
+    : null;
+
+  useEffect(() => {
+    if (!firstSnapshotJob || !terminalSnapshotStatuses.has(firstSnapshotJob.status)) return;
+    void queryClient.invalidateQueries({ queryKey: ["wallets"] });
+    void queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+  }, [firstSnapshotJob, queryClient]);
 
   function handleCreate(event: FormEvent) {
     event.preventDefault();
@@ -133,6 +192,15 @@ export function Wallets() {
           {copy.add}
         </button>
       </form>
+
+      {firstSnapshot && firstSnapshotStatus ? (
+        <FirstSnapshotProgress
+          walletLabel={firstSnapshot.walletLabel}
+          status={firstSnapshotStatus}
+          jobId={firstSnapshotJob?.job_id}
+          onDismiss={() => setFirstSnapshot(null)}
+        />
+      ) : null}
 
       {chainType === "binance" && walletType === "evm" ? <p className="muted">Binance chain не участвует в снапшотах.</p> : null}
       {createMutation.isError ? <p className="form-error">{getErrorMessage(createMutation.error)}</p> : null}

@@ -18,6 +18,7 @@ import {
   XAxis,
 } from "recharts";
 import { getPortfolioHistory, getPortfolioSummary } from "../api/portfolio";
+import { FirstWalletActivation } from "../components/FirstWalletActivation";
 import { Metric } from "../components/Metric";
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
@@ -132,14 +133,17 @@ export function Dashboard() {
   const copy = usePageCopy();
   const [historyDays, setHistoryDays] = useState<(typeof historyPeriods)[number]>(30);
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
+  const hasActiveWallets = (summaryQuery.data?.active_wallets_count ?? summaryQuery.data?.wallets_count ?? 0) > 0;
   const snapshotHistoryQuery = useQuery({
     queryKey: ["portfolio", "history", "snapshot-card", 30],
     queryFn: () => getPortfolioHistory({ days: 30 }),
+    enabled: hasActiveWallets,
   });
   const historyQuery = useQuery({
     queryKey: ["portfolio", "history", "daily", historyDays],
     queryFn: () => getPortfolioHistory({ days: historyDays + 2 }),
     placeholderData: (previousData) => previousData,
+    enabled: hasActiveWallets,
   });
 
   if (summaryQuery.isLoading) {
@@ -154,6 +158,14 @@ export function Dashboard() {
 
   if (!summary) {
     return <PageState title="Нет данных portfolio summary" />;
+  }
+
+  if (!hasActiveWallets) {
+    return (
+      <div className="dashboard-grid">
+        <FirstWalletActivation />
+      </div>
+    );
   }
 
   const topAssets = summary.top_assets ?? [];
