@@ -302,6 +302,101 @@ select:focus {
   gap: 20px;
 }
 
+.first-wallet-activation {
+  grid-column: span 12;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
+  align-items: center;
+  gap: 28px 40px;
+  min-height: 420px;
+  padding: clamp(28px, 5vw, 64px);
+}
+
+.first-wallet-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.first-wallet-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  border-radius: 22px;
+  color: #ffffff;
+  background: #ec6046;
+  box-shadow: 0 14px 30px rgba(236, 96, 70, 0.24);
+}
+
+.first-wallet-intro h2 {
+  margin: 5px 0 12px;
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  line-height: 1;
+}
+
+.first-wallet-intro p:last-child {
+  max-width: 670px;
+  margin: 0;
+  color: #66615e;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.activation-checklist {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activation-checklist li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 11px;
+  color: #363230;
+  line-height: 1.45;
+}
+
+.activation-checklist svg {
+  margin-top: 1px;
+  color: #ec6046;
+}
+
+.read-only-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #e8e5e2;
+  border-radius: 20px;
+  padding: 18px;
+  color: #335448;
+  background: #f2f7f4;
+}
+
+.read-only-note p,
+.read-only-note strong,
+.read-only-note span {
+  display: block;
+  margin: 0;
+}
+
+.read-only-note span {
+  margin-top: 4px;
+  color: #5f6f69;
+  line-height: 1.45;
+}
+
+.first-wallet-cta {
+  justify-self: start;
+  min-width: min(100%, 260px);
+  text-decoration: none;
+}
+
 .hero-card,
 .snapshot-card,
 .content-band,
@@ -810,6 +905,72 @@ select:focus {
   margin: 8px 0 0;
   color: #b83724;
   font-weight: 700;
+}
+
+.first-snapshot-progress {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 13px;
+  margin: 16px 0 4px;
+  border: 1px solid #ddd8d4;
+  border-radius: 20px;
+  padding: 17px 18px;
+  color: #3d3936;
+  background: #f8f6f4;
+}
+
+.snapshot-progress-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 13px;
+  color: #765a46;
+  background: #eee7e1;
+}
+
+.first-snapshot-progress p,
+.first-snapshot-progress strong {
+  margin: 0;
+}
+
+.first-snapshot-progress strong {
+  display: block;
+  margin: 3px 0 4px;
+}
+
+.first-snapshot-progress p:last-child {
+  color: #6d6762;
+  line-height: 1.45;
+}
+
+.snapshot-progress-success {
+  border-color: #cfe5d9;
+  background: #f2f8f5;
+}
+
+.snapshot-progress-success .snapshot-progress-icon {
+  color: #257350;
+  background: #dcefe5;
+}
+
+.snapshot-progress-partial_success,
+.snapshot-progress-failed {
+  border-color: #efd5c7;
+  background: #fff7f1;
+}
+
+.snapshot-progress-partial_success .snapshot-progress-icon,
+.snapshot-progress-failed .snapshot-progress-icon {
+  color: #b45132;
+  background: #f9e3d7;
+}
+
+.snapshot-progress-dismiss {
+  width: 34px;
+  height: 34px;
 }
 
 .route-error {
@@ -1342,6 +1503,11 @@ select:focus {
   .wallet-row {
     grid-template-columns: 1fr;
     justify-items: start;
+  }
+
+  .first-wallet-activation {
+    grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .wallet-balance-cell,
@@ -1943,6 +2109,35 @@ select:focus {
     padding: 16px;
   }
 
+  .first-wallet-activation {
+    gap: 22px;
+    padding: 22px 18px;
+  }
+
+  .first-wallet-intro {
+    display: grid;
+    gap: 14px;
+  }
+
+  .first-wallet-icon {
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
+    border-radius: 18px;
+  }
+
+  .first-wallet-intro h2 {
+    font-size: clamp(1.8rem, 10vw, 2.4rem);
+  }
+
+  .first-wallet-intro p:last-child {
+    font-size: 0.94rem;
+  }
+
+  .first-wallet-cta {
+    width: 100%;
+  }
+
   .hero-card {
     gap: 14px;
     padding: 16px;
@@ -2237,6 +2432,10 @@ select:focus {
   gap: 12px;
 }
 
+.telegram-stage .first-wallet-activation {
+  grid-column: span 12;
+}
+
 .telegram-stage .hero-card,
 .telegram-stage .snapshot-card,
 .telegram-stage .metrics-grid,
@@ -2258,7 +2457,7 @@ select:focus {
   background: var(--telegram-surface);
 }
 
-.telegram-stage :where(.eyebrow, .muted, .metric span, .table-row span, .asset-row em, .hero-copy span, .compact-empty p, .mini-card span, .wallet-balance-cell span, .wallet-assets-preview, .live-balance-button, .toggle, .history-note, .history-legend) {
+.telegram-stage :where(.eyebrow, .muted, .metric span, .table-row span, .asset-row em, .hero-copy span, .compact-empty p, .mini-card span, .wallet-balance-cell span, .wallet-assets-preview, .live-balance-button, .toggle, .history-note, .history-legend, .first-wallet-intro p:last-child, .read-only-note span) {
   color: var(--telegram-muted);
 }
 

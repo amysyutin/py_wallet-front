@@ -98,6 +98,49 @@ const pageCopy = {
     balances: "Балансы", save: "Сохранить", realBalance: "Реальный баланс", assets: "Активы",
     recentRuns: "Последние запуски", loadingPortfolio: "Загружаем портфель", portfolioFailed: "Не удалось загрузить dashboard",
     noSnapshots: "Снапшотов пока нет", noAssets: "Нет активов", noHistory: "Нет истории",
+    firstWalletEyebrow: "Первый шаг",
+    firstWalletTitle: "Добавьте публичный адрес",
+    firstWalletDescription: "Один EVM-адрес проверяется во всех включённых сетях. Мы учитываем native coins и настроенные варианты USDC.",
+    firstWalletSteps: [
+      "Назовите кошелёк и вставьте публичный адрес 0x.",
+      "Первый snapshot запустится автоматически.",
+      "После обработки здесь появятся стоимость и активы.",
+    ],
+    readOnlyTitle: "Только чтение",
+    readOnlyDescription: "PyWallet никогда не просит seed-фразу, private key или подпись транзакции.",
+    firstWalletCta: "Добавить первый кошелёк",
+    snapshotProgressWallet: "Первый snapshot для",
+    snapshotProgressDismiss: "Скрыть статус snapshot",
+    snapshotProgress: {
+      starting: {
+        title: "Первый snapshot запускается",
+        description: "Кошелёк сохранён. Ищем автоматическое задание — обычно это занимает несколько секунд.",
+      },
+      pending: {
+        title: "Snapshot в очереди",
+        description: "Задание создано и ждёт свободного worker.",
+      },
+      running: {
+        title: "Собираем балансы",
+        description: "Проверяем включённые EVM-сети и рассчитываем стоимость активов.",
+      },
+      success: {
+        title: "Первый snapshot готов",
+        description: "Стоимость и активы обновятся в списке автоматически.",
+      },
+      partial_success: {
+        title: "Snapshot готов частично",
+        description: "Доступные данные сохранены, но часть сетей не ответила.",
+      },
+      failed: {
+        title: "Snapshot не завершён",
+        description: "Кошелёк сохранён. Следующий плановый snapshot попробует собрать данные снова.",
+      },
+      unavailable: {
+        title: "Статус snapshot пока недоступен",
+        description: "Кошелёк сохранён. Автоматический сбор может продолжаться; проверьте его карточку чуть позже.",
+      },
+    },
   },
   en: {
     walletsTitle: "Wallets", groupsTitle: "Wallet groups", showArchived: "Show archived",
@@ -112,6 +155,49 @@ const pageCopy = {
     balances: "Balances", save: "Save", realBalance: "Live balance", assets: "Assets",
     recentRuns: "Recent runs", loadingPortfolio: "Loading portfolio", portfolioFailed: "Could not load dashboard",
     noSnapshots: "No snapshots yet", noAssets: "No assets", noHistory: "No history",
+    firstWalletEyebrow: "First step",
+    firstWalletTitle: "Add a public address",
+    firstWalletDescription: "One EVM address is checked across every enabled network. We include native coins and configured USDC variants.",
+    firstWalletSteps: [
+      "Name the wallet and paste its public 0x address.",
+      "The first snapshot starts automatically.",
+      "Your portfolio value and assets appear here when it finishes.",
+    ],
+    readOnlyTitle: "Read-only",
+    readOnlyDescription: "PyWallet never asks for a seed phrase, private key, or transaction signature.",
+    firstWalletCta: "Add your first wallet",
+    snapshotProgressWallet: "First snapshot for",
+    snapshotProgressDismiss: "Dismiss snapshot status",
+    snapshotProgress: {
+      starting: {
+        title: "Starting the first snapshot",
+        description: "The wallet is saved. We are finding its automatic job; this usually takes a few seconds.",
+      },
+      pending: {
+        title: "Snapshot queued",
+        description: "The job is ready and waiting for an available worker.",
+      },
+      running: {
+        title: "Collecting balances",
+        description: "We are checking enabled EVM networks and valuing the assets.",
+      },
+      success: {
+        title: "First snapshot ready",
+        description: "The wallet value and assets will update in the list automatically.",
+      },
+      partial_success: {
+        title: "Snapshot partially ready",
+        description: "Available data is saved, but some networks did not respond.",
+      },
+      failed: {
+        title: "Snapshot did not finish",
+        description: "The wallet is saved. The next scheduled snapshot will try to collect the data again.",
+      },
+      unavailable: {
+        title: "Snapshot status is not available yet",
+        description: "The wallet is saved and automatic collection may continue. Check its page again shortly.",
+      },
+    },
   },
 } as const;
 
