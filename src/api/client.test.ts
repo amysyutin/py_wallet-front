@@ -25,6 +25,22 @@ describe("apiFetch", () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/auth/me");
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer access-token");
+    expect(new Headers(init?.headers).get("X-Client-Channel")).toBe("web");
+  });
+
+  it("marks requests made inside the Telegram Mini App", async () => {
+    Object.defineProperty(window, "Telegram", {
+      configurable: true,
+      value: { WebApp: { initData: "signed-init-data" } },
+    });
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(apiFetch<void>("/wallets")).resolves.toBeUndefined();
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(new Headers(init?.headers).get("X-Client-Channel")).toBe("telegram");
+
+    delete window.Telegram;
   });
 
   it("logs out and preserves the backend message on 401", async () => {

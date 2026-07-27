@@ -1,5 +1,6 @@
 
 import { useAuthStore } from "../store/auth";
+import { isTelegramMiniApp } from "../telegram/runtime";
 
 type RequestOptions = RequestInit & { auth?: boolean };
 type FastApiError = { detail?: string | Array<{ msg: string }> };
@@ -37,6 +38,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  if (!headers.has("X-Client-Channel")) {
+    headers.set("X-Client-Channel", isTelegramMiniApp() ? "telegram" : "web");
+  }
   if (options.auth !== false && token) headers.set("Authorization", `Bearer ${token}`);
 
   let response: Response;
