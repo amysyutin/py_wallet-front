@@ -115,6 +115,23 @@ export type PortfolioSummary = {
   active_wallets_count: number;
   last_snapshot_at?: string | null;
   top_assets: Array<{ symbol: string; usd_value: string; share_pct: number }>;
+  data_health?: {
+    state: "fresh" | "updating" | "partial" | "stale";
+    freshness: "fresh" | "aging" | "stale" | "unknown";
+    as_of: string | null;
+    wallets_covered: number;
+    wallets_total: number;
+    snapshot_wallets: number;
+    manual_wallets: number;
+    missing_wallets: number;
+    refresh_in_progress: boolean;
+    chain_issues: Array<{
+      chain: string;
+      status: string;
+      error_type: string | null;
+      wallets_count: number;
+    }>;
+  };
 };
 
 export type PortfolioHistory = {

@@ -23,7 +23,7 @@ import { Metric } from "../components/Metric";
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd, toNumber } from "../lib/format";
-import { usePageCopy } from "../telegram/i18n";
+import { useLanguage, usePageCopy } from "../telegram/i18n";
 
 const colors = ["#ec6046", "#f2a35e", "#161616", "#d9cfc8", "#8f9b92"];
 const historyPeriods = [7, 14, 30, 90] as const;
@@ -131,6 +131,7 @@ function HistoryTooltip({ active, payload }: { active?: boolean; payload?: Reado
 
 export function Dashboard() {
   const copy = usePageCopy();
+  const language = useLanguage((state) => state.language);
   const [historyDays, setHistoryDays] = useState<(typeof historyPeriods)[number]>(30);
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
   const hasActiveWallets = (summaryQuery.data?.active_wallets_count ?? summaryQuery.data?.wallets_count ?? 0) > 0;
@@ -181,8 +182,19 @@ export function Dashboard() {
     };
   });
   const recentMovements = movementData.slice(-10);
-  const lastDelta = movementData.at(-1)?.delta ?? 0;
   const maxAbsDelta = Math.max(...recentMovements.map((point) => Math.abs(point.delta)), 1);
+  const dataHealth = summary.data_health ?? {
+    state: "partial" as const,
+    freshness: "unknown" as const,
+    as_of: summary.last_snapshot_at ?? null,
+    wallets_covered: summary.last_snapshot_at ? summary.active_wallets_count : 0,
+    wallets_total: summary.active_wallets_count,
+    snapshot_wallets: summary.last_snapshot_at ? summary.active_wallets_count : 0,
+    manual_wallets: 0,
+    missing_wallets: summary.last_snapshot_at ? 0 : summary.active_wallets_count,
+    refresh_in_progress: false,
+    chain_issues: [],
+  };
 
   return (
     <div className="dashboard-grid">
@@ -290,22 +302,39 @@ export function Dashboard() {
         </div>
       </article>
 
-      <article className="mini-card portfolio-health-card">
+      <article
+        className={`mini-card portfolio-health-card data-health-${dataHealth.state}`}
+        aria-label={copy.portfolioHealthTitle}
+      >
         <div className="health-card-header">
-          <span>Portfolio health</span>
-          <strong className={lastDelta >= 0 ? "positive" : "negative"}>{lastDelta >= 0 ? "Up" : "Down"}</strong>
+          <span>{copy.portfolioHealthTitle}</span>
+          <strong>{copy.portfolioHealthStates[dataHealth.state]}</strong>
         </div>
-        <div className="candles-row" aria-label="Свечи движения портфеля">
-          {recentMovements.map((point, index) => (
-            <i
-              key={`${point.timestamp}-${index}`}
-              className={point.delta >= 0 ? "green" : "red"}
-              style={{ height: `${Math.max(22, (Math.abs(point.delta) / maxAbsDelta) * 76)}px` }}
-              title={`${point.tooltipLabel}: ${formatUsd(point.delta)}`}
-            />
-          ))}
+        <div className="data-health-coverage">
+          <strong>{dataHealth.wallets_covered}/{dataHealth.wallets_total}</strong>
+          <span>{copy.portfolioHealthCoverage}</span>
         </div>
-        <em>{formatUsd(lastDelta)} за последнюю точку</em>
+        <p>
+          {dataHealth.as_of
+            ? `${copy.portfolioHealthAsOf} ${new Date(dataHealth.as_of).toLocaleString(language === "ru" ? "ru-RU" : "en-US")}`
+            : copy.portfolioHealthNoSnapshotTime}
+        </p>
+        <p>
+          {copy.portfolioHealthSources}: {dataHealth.snapshot_wallets} {copy.portfolioHealthSnapshots}
+          {" · "}{dataHealth.manual_wallets} {copy.portfolioHealthManual}
+          {" · "}{dataHealth.missing_wallets} {copy.portfolioHealthMissing}
+        </p>
+        {dataHealth.refresh_in_progress ? <em>{copy.portfolioHealthRefreshing}</em> : null}
+        {dataHealth.chain_issues.length > 0 ? (
+          <p>
+            {copy.portfolioHealthIssues}:{" "}
+            {dataHealth.chain_issues.map((issue) => (
+              <span className="data-health-issue" key={`${issue.chain}-${issue.status}-${issue.error_type ?? "unknown"}`}>
+                {issue.chain} ({issue.wallets_count})
+              </span>
+            ))}
+          </p>
+        ) : null}
       </article>
 
       <article className="content-band balance-movement-card">

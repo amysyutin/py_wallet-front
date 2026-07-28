@@ -1336,14 +1336,46 @@ select:focus {
   font-size: 0.82rem;
 }
 
-.health-card-header .positive {
+.data-health-fresh .health-card-header strong {
   color: #0f5132;
   background: #b9f3cf;
 }
 
-.health-card-header .negative {
+.data-health-updating .health-card-header strong {
+  color: #47350a;
+  background: #fce7a8;
+}
+
+.data-health-partial .health-card-header strong,
+.data-health-stale .health-card-header strong {
   color: #7f1d1d;
   background: #fecaca;
+}
+
+.data-health-coverage {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.data-health-coverage strong {
+  font-size: clamp(1.7rem, 4vw, 2.7rem);
+}
+
+.portfolio-health-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.data-health-issue {
+  display: inline-flex;
+  margin: 4px 6px 0 0;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #7f1d1d !important;
+  background: #fecaca;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .candles-row {

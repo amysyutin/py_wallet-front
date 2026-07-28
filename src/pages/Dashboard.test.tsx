@@ -75,3 +75,78 @@ describe("first wallet activation", () => {
     await waitFor(() => expect(screen.getByText("Wallet creation")).toBeInTheDocument());
   });
 });
+
+describe("portfolio data health", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useLanguage.setState({ language: "en" });
+    getPortfolioHistoryMock.mockReset();
+    getPortfolioSummaryMock.mockReset();
+    getPortfolioHistoryMock.mockResolvedValue({ days: 30, points: [] });
+  });
+
+  it("shows conservative coverage, sources and affected networks", async () => {
+    getPortfolioSummaryMock.mockResolvedValue({
+      total_usd: "125.50",
+      wallets_count: 3,
+      active_wallets_count: 3,
+      last_snapshot_at: "2026-07-28T08:30:00Z",
+      top_assets: [],
+      data_health: {
+        state: "partial",
+        freshness: "fresh",
+        as_of: "2026-07-28T08:00:00Z",
+        wallets_covered: 2,
+        wallets_total: 3,
+        snapshot_wallets: 1,
+        manual_wallets: 1,
+        missing_wallets: 1,
+        refresh_in_progress: false,
+        chain_issues: [
+          {
+            chain: "base",
+            status: "failed",
+            error_type: "rpc_unavailable",
+            wallets_count: 1,
+          },
+        ],
+      },
+    });
+
+    renderDashboard("/", "/", "/wallets");
+
+    expect(await screen.findByRole("article", { name: "Data health" })).toHaveTextContent("Partial");
+    expect(screen.getByText("2/3")).toBeInTheDocument();
+    expect(screen.getByText(/1 snapshot · 1 manual · 1 missing/)).toBeInTheDocument();
+    expect(screen.getByText("base (1)")).toBeInTheDocument();
+    expect(screen.queryByText(/rpc_unavailable/)).not.toBeInTheDocument();
+  });
+
+  it("makes an active refresh explicit without hiding the persisted total", async () => {
+    getPortfolioSummaryMock.mockResolvedValue({
+      total_usd: "125.50",
+      wallets_count: 1,
+      active_wallets_count: 1,
+      last_snapshot_at: "2026-07-28T08:30:00Z",
+      top_assets: [],
+      data_health: {
+        state: "updating",
+        freshness: "aging",
+        as_of: "2026-07-28T08:30:00Z",
+        wallets_covered: 1,
+        wallets_total: 1,
+        snapshot_wallets: 1,
+        manual_wallets: 0,
+        missing_wallets: 0,
+        refresh_in_progress: true,
+        chain_issues: [],
+      },
+    });
+
+    renderDashboard("/", "/", "/wallets");
+
+    expect(await screen.findByRole("article", { name: "Data health" })).toHaveTextContent("Updating");
+    expect(screen.getByText("A refresh is currently running.")).toBeInTheDocument();
+    expect(screen.getByText("1/1")).toBeInTheDocument();
+  });
+});
