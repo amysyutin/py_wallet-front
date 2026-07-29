@@ -4,7 +4,6 @@ import { Copy, Plus, Save, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getErrorMessage } from "../api/client";
-import type { ChainType } from "../api/types";
 import {
   deleteManualBalance,
   getManualBalances,
@@ -20,8 +19,6 @@ import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd } from "../lib/format";
 import { usePageCopy } from "../telegram/i18n";
 
-const evmChains: ChainType[] = ["mainnet", "base", "bnb", "arbitrum", "linea", "binance"];
-
 function hasUsableLiveBalance(data: Awaited<ReturnType<typeof getWalletAssets>> | undefined) {
   if (!data) return false;
   if (data.chains.length === 0) return true;
@@ -35,7 +32,6 @@ export function WalletDetail() {
   const [symbol, setSymbol] = useState("");
   const [amount, setAmount] = useState("");
   const [priceUsd, setPriceUsd] = useState("");
-  const [chainType, setChainType] = useState<ChainType>("mainnet");
   const [address, setAddress] = useState("");
 
   const walletQuery = useQuery({
@@ -64,7 +60,7 @@ export function WalletDetail() {
     enabled: walletQuery.data?.wallet_type === "manual",
   });
   const updateMutation = useMutation({
-    mutationFn: () => updateWallet(walletId, { chain_type: chainType, address }),
+    mutationFn: () => updateWallet(walletId, { chain_type: "all", address }),
     onSuccess: (updatedWallet) => {
       queryClient.setQueryData(["wallet", walletId], updatedWallet);
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
@@ -82,7 +78,6 @@ export function WalletDetail() {
 
   useEffect(() => {
     if (walletQuery.data?.wallet_type === "evm") {
-      setChainType(walletQuery.data.chain_type as ChainType);
       setAddress(walletQuery.data.address ?? "");
     }
   }, [walletQuery.data]);
@@ -129,7 +124,7 @@ export function WalletDetail() {
 
       <div className="detail-grid wallet-detail-grid">
         <p className="full-address-line"><b>{copy.address}:</b> {wallet.address || "manual wallet"}</p>
-        <p><b>{copy.network}:</b> {wallet.chain_type}</p>
+        <p><b>{copy.networks}:</b> {isEvm ? copy.allNetworks : wallet.chain_type}</p>
         <p><b>{copy.status}:</b> {wallet.is_active ? "active" : "archived"}</p>
         <p><b>{copy.liveBalance}:</b> {liveBalanceLabel}</p>
         <p><b>{copy.snapshotBalance}:</b> {formatUsd(summaryQuery.data?.balance_usd)}</p>
@@ -139,20 +134,12 @@ export function WalletDetail() {
       {isEvm ? (
         <form className="wallet-settings-form" onSubmit={handleWalletUpdate}>
           <label>
-            {copy.network}
-            <select value={chainType} onChange={(event) => setChainType(event.target.value as ChainType)}>
-              {evmChains.map((chain) => (
-                <option key={chain} value={chain}>{chain}</option>
-              ))}
-            </select>
-          </label>
-          <label>
             {copy.fullAddress}
-            <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="0x..." required maxLength={128} />
+            <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="0x..." required maxLength={42} />
           </label>
           <button className="primary-button" type="submit" disabled={updateMutation.isPending}>
             <Save size={18} />
-            {updateMutation.isPending ? copy.saving : copy.saveNetwork}
+            {updateMutation.isPending ? copy.saving : copy.saveAddress}
           </button>
           {wallet.address ? (
             <button className="chip" type="button" onClick={() => navigator.clipboard.writeText(wallet.address ?? "")}>

@@ -109,5 +109,14 @@ describe("first wallet snapshot progress", () => {
 
     expect(await screen.findByText("Snapshot в очереди")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("#412");
+    expect(createWalletMock.mock.calls[0]?.[0]).toEqual({
+      label: "Primary",
+      wallet_type: "evm",
+      chain_type: "all",
+      address: "0x0000000000000000000000000000000000000037",
+      group_id: null,
+    });
+    expect(screen.getByText("Адрес будет автоматически проверяться во всех доступных EVM-сетях.")).toBeInTheDocument();
+    expect(screen.getAllByRole("combobox")).toHaveLength(2);
   });
 });

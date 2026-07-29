@@ -13,7 +13,7 @@ export type Token = {
 };
 
 export type WalletType = "evm" | "manual";
-export type ChainType = "mainnet" | "base" | "bnb" | "arbitrum" | "linea" | "binance" | "manual";
+export type ChainType = "all" | "mainnet" | "base" | "bnb" | "arbitrum" | "linea" | "binance" | "manual";
 
 export type WalletGroupRead = {
   id: number;

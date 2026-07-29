@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { getErrorMessage } from "../api/client";
 import { getGroups } from "../api/groups";
 import { getSnapshotJobs } from "../api/snapshots";
-import type { ChainType, WalletType } from "../api/types";
+import type { WalletType } from "../api/types";
 import { archiveWallet, createWallet, getWalletAssets, getWallets } from "../api/wallets";
 import { FirstSnapshotProgress, type FirstSnapshotProgressStatus } from "../components/FirstSnapshotProgress";
 import { PageState } from "../components/PageState";
@@ -14,7 +14,6 @@ import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd, shortAddress } from "../lib/format";
 import { usePageCopy } from "../telegram/i18n";
 
-const chains: ChainType[] = ["mainnet", "base", "bnb", "arbitrum", "linea", "binance"];
 const firstSnapshotLookupTimeoutMs = 15_000;
 const terminalSnapshotStatuses = new Set(["success", "partial_success", "failed"]);
 
@@ -29,7 +28,6 @@ export function Wallets() {
   const queryClient = useQueryClient();
   const [activeOnly, setActiveOnly] = useState(true);
   const [walletType, setWalletType] = useState<WalletType>("evm");
-  const [chainType, setChainType] = useState<ChainType>("mainnet");
   const [label, setLabel] = useState("");
   const [address, setAddress] = useState("");
   const [groupId, setGroupId] = useState("");
@@ -125,7 +123,7 @@ export function Wallets() {
     createMutation.mutate({
       label,
       wallet_type: walletType,
-      chain_type: walletType === "manual" ? "manual" : chainType,
+      chain_type: walletType === "manual" ? "manual" : "all",
       address: walletType === "manual" ? null : address,
       group_id: groupId ? Number(groupId) : null,
     });
@@ -172,14 +170,7 @@ export function Wallets() {
           <option value="manual">Manual</option>
         </select>
         {walletType === "evm" ? (
-          <>
-            <select value={chainType} onChange={(event) => setChainType(event.target.value as ChainType)}>
-              {chains.map((chain) => (
-                <option key={chain} value={chain}>{chain}</option>
-              ))}
-            </select>
-            <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="0x..." required maxLength={128} />
-          </>
+          <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="0x..." required maxLength={42} />
         ) : null}
         <select value={groupId} onChange={(event) => setGroupId(event.target.value)}>
           <option value="">{copy.noGroup}</option>
@@ -202,7 +193,7 @@ export function Wallets() {
         />
       ) : null}
 
-      {chainType === "binance" && walletType === "evm" ? <p className="muted">Binance chain не участвует в снапшотах.</p> : null}
+      {walletType === "evm" ? <p className="muted">{copy.allNetworksHint}</p> : null}
       {createMutation.isError ? <p className="form-error">{getErrorMessage(createMutation.error)}</p> : null}
       {walletsQuery.isLoading ? <PageState title={copy.loadingWallets} /> : null}
       {walletsQuery.isError ? <PageState title={copy.walletsFailed} /> : null}
@@ -236,7 +227,7 @@ export function Wallets() {
                   <strong>{wallet.label}</strong>
                 </Link>
                 <span>
-                  {wallet.wallet_type} / {wallet.chain_type}
+                  {wallet.wallet_type} / {wallet.wallet_type === "evm" ? copy.allNetworks : wallet.chain_type}
                   {wallet.group_name ? ` / ${wallet.group_name}` : ""}
                 </span>
               </div>
