@@ -194,6 +194,18 @@ export function Dashboard() {
     missing_wallets: summary.last_snapshot_at ? 0 : summary.active_wallets_count,
     refresh_in_progress: false,
     chain_issues: [],
+    price_quality: {
+      state: "unknown" as const,
+      sources: ["unknown" as const],
+      assets_priced: 0,
+      assets_total: 0,
+    },
+  };
+  const priceQuality = dataHealth.price_quality ?? {
+    state: "unknown" as const,
+    sources: ["unknown" as const],
+    assets_priced: 0,
+    assets_total: 0,
   };
 
   return (
@@ -323,6 +335,16 @@ export function Dashboard() {
           {copy.portfolioHealthSources}: {dataHealth.snapshot_wallets} {copy.portfolioHealthSnapshots}
           {" · "}{dataHealth.manual_wallets} {copy.portfolioHealthManual}
           {" · "}{dataHealth.missing_wallets} {copy.portfolioHealthMissing}
+        </p>
+        <p className={`price-quality price-quality-${priceQuality.state}`}>
+          <strong>{copy.portfolioPriceQuality}:</strong>{" "}
+          {copy.portfolioPriceStates[priceQuality.state]}
+          {priceQuality.assets_total > 0
+            ? ` · ${priceQuality.assets_priced}/${priceQuality.assets_total} ${copy.portfolioPriceCoverage}`
+            : ""}
+          {priceQuality.sources.length > 0
+            ? ` · ${priceQuality.sources.map((source) => copy.portfolioPriceSources[source]).join(", ")}`
+            : ""}
         </p>
         {dataHealth.refresh_in_progress ? <em>{copy.portfolioHealthRefreshing}</em> : null}
         {dataHealth.chain_issues.length > 0 ? (

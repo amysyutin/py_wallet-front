@@ -131,6 +131,12 @@ export type PortfolioSummary = {
       error_type: string | null;
       wallets_count: number;
     }>;
+    price_quality?: {
+      state: "complete" | "estimated" | "incomplete" | "unknown";
+      sources: Array<"coingecko" | "manual" | "static_dev" | "unknown">;
+      assets_priced: number;
+      assets_total: number;
+    };
   };
 };
 
