@@ -102,6 +102,12 @@ describe("portfolio data health", () => {
         manual_wallets: 1,
         missing_wallets: 1,
         refresh_in_progress: false,
+        price_quality: {
+          state: "incomplete",
+          sources: ["coingecko", "unknown"],
+          assets_priced: 2,
+          assets_total: 3,
+        },
         chain_issues: [
           {
             chain: "base",
@@ -119,6 +125,9 @@ describe("portfolio data health", () => {
     expect(screen.getByText("2/3")).toBeInTheDocument();
     expect(screen.getByText(/1 snapshot · 1 manual · 1 missing/)).toBeInTheDocument();
     expect(screen.getByText("base (1)")).toBeInTheDocument();
+    expect(screen.getByText(/Some assets do not have a price/)).toBeInTheDocument();
+    expect(screen.getByText(/2\/3 positions priced/)).toBeInTheDocument();
+    expect(screen.getByText(/CoinGecko, unknown/)).toBeInTheDocument();
     expect(screen.queryByText(/rpc_unavailable/)).not.toBeInTheDocument();
   });
 
@@ -140,6 +149,12 @@ describe("portfolio data health", () => {
         missing_wallets: 0,
         refresh_in_progress: true,
         chain_issues: [],
+        price_quality: {
+          state: "complete",
+          sources: ["coingecko"],
+          assets_priced: 2,
+          assets_total: 2,
+        },
       },
     });
 
@@ -148,5 +163,6 @@ describe("portfolio data health", () => {
     expect(await screen.findByRole("article", { name: "Data health" })).toHaveTextContent("Updating");
     expect(screen.getByText("A refresh is currently running.")).toBeInTheDocument();
     expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(screen.getByText(/All non-zero positions are priced/)).toBeInTheDocument();
   });
 });

@@ -1367,6 +1367,18 @@ select:focus {
   color: rgba(255, 255, 255, 0.82);
 }
 
+.portfolio-health-card .price-quality {
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.portfolio-health-card .price-quality-estimated,
+.portfolio-health-card .price-quality-incomplete {
+  color: #fecaca;
+  background: rgba(236, 96, 70, 0.18);
+}
+
 .data-health-issue {
   display: inline-flex;
   margin: 4px 6px 0 0;
