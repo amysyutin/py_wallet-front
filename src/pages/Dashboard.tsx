@@ -16,7 +16,10 @@ import {
   Tooltip,
   XAxis,
 } from "recharts";
-import { getPortfolioHistory, getPortfolioSummary } from "../api/portfolio";
+import { getGroups } from "../api/groups";
+import { getPortfolioAllocation, getPortfolioHistory, getPortfolioSummary } from "../api/portfolio";
+import type { PortfolioAllocationScope } from "../api/types";
+import { AllocationGroupFilter } from "../components/AllocationGroupFilter";
 import { FirstWalletActivation } from "../components/FirstWalletActivation";
 import { Metric } from "../components/Metric";
 import { PageState } from "../components/PageState";
@@ -113,6 +116,12 @@ function formatSignedUsd(value: number | null) {
   return value > 0 ? `+${formatUsd(value)}` : formatUsd(value);
 }
 
+function allocationScopeKey(scope: PortfolioAllocationScope) {
+  return scope.mode === "all"
+    ? "all"
+    : `selection:${[...scope.group_ids].sort((left, right) => left - right).join(",")}:${scope.include_ungrouped}`;
+}
+
 function HistoryTooltip({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: DailyHistoryPoint }> }) {
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
@@ -132,8 +141,16 @@ export function Dashboard() {
   const copy = usePageCopy();
   const language = useLanguage((state) => state.language);
   const [historyDays, setHistoryDays] = useState<(typeof historyPeriods)[number]>(30);
+  const [allocationScope, setAllocationScope] = useState<PortfolioAllocationScope>({ mode: "all" });
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
   const hasActiveWallets = (summaryQuery.data?.active_wallets_count ?? summaryQuery.data?.wallets_count ?? 0) > 0;
+  const groupsQuery = useQuery({ queryKey: ["wallet-groups"], queryFn: getGroups, enabled: hasActiveWallets });
+  const allocationQuery = useQuery({
+    queryKey: ["portfolio", "allocation", allocationScope],
+    queryFn: () => getPortfolioAllocation(allocationScope),
+    placeholderData: (previousData) => previousData,
+    enabled: hasActiveWallets,
+  });
   const historyQuery = useQuery({
     queryKey: ["portfolio", "history", "daily", historyDays],
     queryFn: () => getPortfolioHistory({ days: historyDays + 2 }),
@@ -163,35 +180,14 @@ export function Dashboard() {
     );
   }
 
-  const topAssets = summary.top_assets ?? [];
+  const allocationScopeMatches = allocationQuery.data
+    ? allocationScopeKey(allocationQuery.data.scope) === allocationScopeKey(allocationScope)
+    : false;
+  const topAssets = allocationScopeMatches ? allocationQuery.data?.items ?? [] : [];
+  const allocationLoading = allocationQuery.isLoading || (allocationQuery.isFetching && !allocationScopeMatches);
   const history = historyQuery.data?.points ?? [];
   const historyChartData = buildPortfolioChartData(history);
   const dailyHistoryData = buildDailyHistoryData(historyChartData, historyDays);
-  const dataHealth = summary.data_health ?? {
-    state: "partial" as const,
-    freshness: "unknown" as const,
-    as_of: summary.last_snapshot_at ?? null,
-    wallets_covered: summary.last_snapshot_at ? summary.active_wallets_count : 0,
-    wallets_total: summary.active_wallets_count,
-    snapshot_wallets: summary.last_snapshot_at ? summary.active_wallets_count : 0,
-    manual_wallets: 0,
-    missing_wallets: summary.last_snapshot_at ? 0 : summary.active_wallets_count,
-    refresh_in_progress: false,
-    chain_issues: [],
-    price_quality: {
-      state: "unknown" as const,
-      sources: ["unknown" as const],
-      assets_priced: 0,
-      assets_total: 0,
-    },
-  };
-  const priceQuality = dataHealth.price_quality ?? {
-    state: "unknown" as const,
-    sources: ["unknown" as const],
-    assets_priced: 0,
-    assets_total: 0,
-  };
-
   return (
     <div className="dashboard-grid">
       <section className="metrics-grid soft-row">
@@ -200,8 +196,31 @@ export function Dashboard() {
       </section>
 
       <article className="content-band allocation-card">
-        <SectionHeader eyebrow="Assets" title="Allocation" />
-        {topAssets.length === 0 ? (
+        <SectionHeader
+          eyebrow="Assets"
+          title="Allocation"
+          actions={
+            <AllocationGroupFilter
+              groups={groupsQuery.data ?? []}
+              value={allocationScope}
+              onApply={setAllocationScope}
+              language={language}
+            />
+          }
+        />
+        {allocationScopeMatches && allocationQuery.data ? (
+          <p className="allocation-scope-summary">
+            <strong>{allocationScope.mode === "all" ? (language === "ru" ? "Все активные кошельки" : "All active wallets") : (language === "ru" ? "Выбранные группы" : "Selected groups")}</strong>
+            {" · "}{language === "ru" ? "Сумма" : "Subtotal"}: {formatUsd(allocationQuery.data.total_usd)}
+            {" · "}{allocationQuery.data.wallets_count} {language === "ru" ? "кош." : "wallets"}
+            <span>{language === "ru" ? "Portfolio value и история остаются глобальными." : "Portfolio value and history remain global."}</span>
+          </p>
+        ) : null}
+        {allocationLoading ? (
+          <PageState title={language === "ru" ? "Загружаем распределение" : "Loading allocation"} />
+        ) : allocationQuery.isError ? (
+          <PageState title={language === "ru" ? "Не удалось загрузить распределение" : "Could not load allocation"} />
+        ) : topAssets.length === 0 ? (
           <PageState title={copy.noAssets} message="Portfolio allocation will appear after wallet processing." />
         ) : (
           <div className="chart-grid">
@@ -209,7 +228,7 @@ export function Dashboard() {
               <PieChart>
                 <Pie data={topAssets} dataKey={(item) => toNumber(item.share_pct)} nameKey="symbol" innerRadius={62} outerRadius={96} paddingAngle={3}>
                   {topAssets.map((asset, index) => (
-                    <Cell key={asset.symbol} fill={colors[index % colors.length]} />
+                    <Cell key={asset.asset_key} fill={colors[index % colors.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -217,7 +236,7 @@ export function Dashboard() {
             </ResponsiveContainer>
             <div className="asset-list">
               {topAssets.map((asset, index) => (
-                <div className="asset-row" key={asset.symbol}>
+                <div className="asset-row" key={asset.asset_key}>
                   <i style={{ backgroundColor: colors[index % colors.length] }} />
                   <span>{asset.symbol}</span>
                   <b>{formatUsd(asset.usd_value)}</b>
@@ -289,50 +308,6 @@ export function Dashboard() {
         )}
       </article>
 
-      <article
-        className={`mini-card portfolio-health-card data-health-${dataHealth.state}`}
-        aria-label={copy.portfolioHealthTitle}
-      >
-        <div className="health-card-header">
-          <span>{copy.portfolioHealthTitle}</span>
-          <strong>{copy.portfolioHealthStates[dataHealth.state]}</strong>
-        </div>
-        <div className="data-health-coverage">
-          <strong>{dataHealth.wallets_covered}/{dataHealth.wallets_total}</strong>
-          <span>{copy.portfolioHealthCoverage}</span>
-        </div>
-        <p>
-          {dataHealth.as_of
-            ? `${copy.portfolioHealthAsOf} ${new Date(dataHealth.as_of).toLocaleString(language === "ru" ? "ru-RU" : "en-US")}`
-            : copy.portfolioHealthNoSnapshotTime}
-        </p>
-        <p>
-          {copy.portfolioHealthSources}: {dataHealth.snapshot_wallets} {copy.portfolioHealthSnapshots}
-          {" · "}{dataHealth.manual_wallets} {copy.portfolioHealthManual}
-          {" · "}{dataHealth.missing_wallets} {copy.portfolioHealthMissing}
-        </p>
-        <p className={`price-quality price-quality-${priceQuality.state}`}>
-          <strong>{copy.portfolioPriceQuality}:</strong>{" "}
-          {copy.portfolioPriceStates[priceQuality.state]}
-          {priceQuality.assets_total > 0
-            ? ` · ${priceQuality.assets_priced}/${priceQuality.assets_total} ${copy.portfolioPriceCoverage}`
-            : ""}
-          {priceQuality.sources.length > 0
-            ? ` · ${priceQuality.sources.map((source) => copy.portfolioPriceSources[source]).join(", ")}`
-            : ""}
-        </p>
-        {dataHealth.refresh_in_progress ? <em>{copy.portfolioHealthRefreshing}</em> : null}
-        {dataHealth.chain_issues.length > 0 ? (
-          <p>
-            {copy.portfolioHealthIssues}:{" "}
-            {dataHealth.chain_issues.map((issue) => (
-              <span className="data-health-issue" key={`${issue.chain}-${issue.status}-${issue.error_type ?? "unknown"}`}>
-                {issue.chain} ({issue.wallets_count})
-              </span>
-            ))}
-          </p>
-        ) : null}
-      </article>
     </div>
   );
 }

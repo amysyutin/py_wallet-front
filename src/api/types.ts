@@ -138,6 +138,43 @@ export type PortfolioSummary = {
       assets_total: number;
     };
   };
+  change_24h?: {
+    status: "complete" | "incomplete" | "unavailable";
+    kind: "value_change";
+    start_usd: string | null;
+    end_usd: string | null;
+    absolute_usd: string | null;
+    percent: number | null;
+    reference_at: string;
+    cutoff_at: string;
+    start_observed_from: string | null;
+    start_observed_to: string | null;
+    end_observed_from: string | null;
+    end_observed_to: string | null;
+    reason_codes: string[];
+  };
+};
+
+export type PortfolioAllocationScope =
+  | { mode: "all" }
+  | { mode: "selection"; group_ids: number[]; include_ungrouped: boolean };
+
+export type PortfolioAllocation = {
+  scope: PortfolioAllocationScope;
+  wallets_count: number;
+  total_usd: string;
+  items: Array<{
+    asset_key: string;
+    symbol: string;
+    usd_value: string;
+    share_pct: number;
+  }>;
+  data_quality: {
+    state: "complete" | "estimated" | "incomplete" | "unknown" | "empty";
+    sources: Array<"coingecko" | "manual" | "static_dev" | "unknown">;
+    assets_priced: number;
+    assets_total: number;
+  };
 };
 
 export type PortfolioHistory = {
