@@ -166,3 +166,42 @@ describe("portfolio data health", () => {
     expect(screen.getByText(/All non-zero positions are priced/)).toBeInTheDocument();
   });
 });
+
+describe("dashboard history cleanup", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useLanguage.setState({ language: "en" });
+    getPortfolioHistoryMock.mockReset();
+    getPortfolioSummaryMock.mockReset();
+    getPortfolioSummaryMock.mockResolvedValue({
+      total_usd: "125.50",
+      wallets_count: 1,
+      active_wallets_count: 1,
+      last_snapshot_at: "2026-07-30T08:30:00Z",
+      top_assets: [],
+    });
+  });
+
+  it("uses one history request and removes the duplicate dashboard cards", async () => {
+    getPortfolioHistoryMock.mockResolvedValue({ days: 32, points: [] });
+
+    renderDashboard("/", "/", "/wallets");
+
+    expect(await screen.findByText("No history")).toBeInTheDocument();
+    expect(getPortfolioHistoryMock).toHaveBeenCalledTimes(1);
+    expect(getPortfolioHistoryMock).toHaveBeenCalledWith({ days: 32 });
+    expect(screen.queryByText("30 Days")).not.toBeInTheDocument();
+    expect(screen.queryByText("Balance movement")).not.toBeInTheDocument();
+    expect(screen.queryByText("Движение баланса")).not.toBeInTheDocument();
+  });
+
+  it("does not present a history API failure as an empty history", async () => {
+    getPortfolioHistoryMock.mockRejectedValue(new Error("history unavailable"));
+
+    renderDashboard("/", "/", "/wallets");
+
+    expect(await screen.findByText("Could not load history")).toBeInTheDocument();
+    expect(screen.getByText(/saved portfolio value is still available/i)).toBeInTheDocument();
+    expect(screen.queryByText("No history")).not.toBeInTheDocument();
+  });
+});

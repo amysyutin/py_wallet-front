@@ -769,24 +769,6 @@ select:focus {
   background: #f2f1ef;
 }
 
-.dot-matrix {
-  display: grid;
-  grid-template-columns: repeat(8, 10px);
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.dot-matrix i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #e3dfdc;
-}
-
-.dot-matrix i.active {
-  background: #ec6046;
-}
-
 .gauge-ring {
   width: 82px;
   height: 82px;
@@ -1435,45 +1417,6 @@ select:focus {
   background: #f05a4a;
 }
 
-.balance-movement-card {
-  grid-column: span 8;
-}
-
-.balance-histogram {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(14px, 1fr));
-  align-items: end;
-  gap: 12px;
-  min-height: 164px;
-  margin: 14px 0 16px;
-  padding: 12px;
-  border-radius: 22px;
-  background: #faf7f4;
-}
-
-.balance-histogram i {
-  display: flex;
-  align-items: end;
-  justify-content: center;
-  min-height: 140px;
-  border-radius: 999px;
-}
-
-.balance-histogram span {
-  display: block;
-  width: 100%;
-  max-width: 28px;
-  border-radius: 999px 999px 8px 8px;
-}
-
-.balance-histogram .green span {
-  background: linear-gradient(180deg, #2bbf6a, #9be7b8);
-}
-
-.balance-histogram .red span {
-  background: linear-gradient(180deg, #ec6046, #f7b1a5);
-}
-
 .wallet-detail-grid {
   grid-template-columns: minmax(0, 2fr) minmax(160px, 0.7fr) minmax(140px, 0.6fr);
 }
@@ -1514,8 +1457,7 @@ select:focus {
   .hero-card,
   .snapshot-card,
   .allocation-card,
-  .history-card,
-  .balance-movement-card {
+  .history-card {
     grid-column: span 12;
   }
 
@@ -1796,8 +1738,7 @@ select:focus {
   }
 
   .mini-card,
-  .portfolio-health-card,
-  .balance-movement-card {
+  .portfolio-health-card {
     grid-column: span 12;
   }
 
@@ -2045,12 +1986,6 @@ select:focus {
   .asset-row em {
     grid-column: 2 / -1;
     justify-self: end;
-  }
-
-  .balance-histogram {
-    gap: 5px;
-    padding: 10px 6px;
-    overflow: hidden;
   }
 
   .candles-row {
@@ -2498,8 +2433,7 @@ select:focus {
 .telegram-stage .metrics-grid,
 .telegram-stage .allocation-card,
 .telegram-stage .history-card,
-.telegram-stage .mini-card,
-.telegram-stage .balance-movement-card {
+.telegram-stage .mini-card {
   grid-column: span 12;
 }
 
@@ -2546,7 +2480,7 @@ select:focus {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--telegram-button), transparent 84%);
 }
 
-.telegram-stage :where(.date-orb, .compact-empty, .metric-icon, .history-periods, .balance-histogram, .wallet-settings-form, .icon-button, .chip) {
+.telegram-stage :where(.date-orb, .compact-empty, .metric-icon, .history-periods, .wallet-settings-form, .icon-button, .chip) {
   border-color: var(--telegram-border);
   color: var(--telegram-text);
   background: var(--telegram-surface-soft);
