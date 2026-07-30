@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Clock3,
   Layers3,
   WalletCards,
 } from "lucide-react";
@@ -135,11 +134,6 @@ export function Dashboard() {
   const [historyDays, setHistoryDays] = useState<(typeof historyPeriods)[number]>(30);
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
   const hasActiveWallets = (summaryQuery.data?.active_wallets_count ?? summaryQuery.data?.wallets_count ?? 0) > 0;
-  const snapshotHistoryQuery = useQuery({
-    queryKey: ["portfolio", "history", "snapshot-card", 30],
-    queryFn: () => getPortfolioHistory({ days: 30 }),
-    enabled: hasActiveWallets,
-  });
   const historyQuery = useQuery({
     queryKey: ["portfolio", "history", "daily", historyDays],
     queryFn: () => getPortfolioHistory({ days: historyDays + 2 }),
@@ -171,18 +165,8 @@ export function Dashboard() {
 
   const topAssets = summary.top_assets ?? [];
   const history = historyQuery.data?.points ?? [];
-  const snapshotChartData = buildPortfolioChartData(snapshotHistoryQuery.data?.points ?? []);
   const historyChartData = buildPortfolioChartData(history);
   const dailyHistoryData = buildDailyHistoryData(historyChartData, historyDays);
-  const movementData = snapshotChartData.map((point, index) => {
-    const previous = snapshotChartData[index - 1]?.total ?? point.total;
-    return {
-      ...point,
-      delta: point.total - previous,
-    };
-  });
-  const recentMovements = movementData.slice(-10);
-  const maxAbsDelta = Math.max(...recentMovements.map((point) => Math.abs(point.delta)), 1);
   const dataHealth = summary.data_health ?? {
     state: "partial" as const,
     freshness: "unknown" as const,
@@ -267,6 +251,8 @@ export function Dashboard() {
         />
         {historyQuery.isLoading ? (
           <PageState title="Загружаем историю" />
+        ) : historyQuery.isError ? (
+          <PageState title={copy.historyFailed} message={copy.historyFailedHint} />
         ) : history.length === 0 ? (
           <PageState title={copy.noHistory} message="Create the first snapshot." />
         ) : (
@@ -301,17 +287,6 @@ export function Dashboard() {
             <p className="history-note">Наведите на линию или коснитесь графика, чтобы увидеть стоимость и изменение за день.</p>
           </div>
         )}
-      </article>
-
-      <article className="mini-card days-card">
-        <Clock3 size={22} />
-        <strong>30 Days</strong>
-        <span>portfolio window</span>
-        <div className="dot-matrix" aria-hidden="true">
-          {Array.from({ length: 24 }, (_, index) => (
-            <i key={index} className={index < 13 ? "active" : ""} />
-          ))}
-        </div>
       </article>
 
       <article
@@ -357,18 +332,6 @@ export function Dashboard() {
             ))}
           </p>
         ) : null}
-      </article>
-
-      <article className="content-band balance-movement-card">
-        <SectionHeader eyebrow="Balance movement" title="Движение баланса" />
-        <div className="balance-histogram" aria-label="Гистограмма движения баланса кошелька">
-          {recentMovements.map((point, index) => (
-            <i key={`${point.timestamp}-bar-${index}`} className={point.delta >= 0 ? "green" : "red"}>
-              <span style={{ height: `${Math.max(16, (Math.abs(point.delta) / maxAbsDelta) * 130)}px` }} />
-            </i>
-          ))}
-        </div>
-        <p className="muted">Красный показывает снижение между снапшотами, зеленый - рост.</p>
       </article>
     </div>
   );

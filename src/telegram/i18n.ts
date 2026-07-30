@@ -99,6 +99,8 @@ const pageCopy = {
     balances: "Балансы", save: "Сохранить", realBalance: "Реальный баланс", assets: "Активы",
     recentRuns: "Последние запуски", loadingPortfolio: "Загружаем портфель", portfolioFailed: "Не удалось загрузить dashboard",
     noSnapshots: "Снапшотов пока нет", noAssets: "Нет активов", noHistory: "Нет истории",
+    historyFailed: "Не удалось загрузить историю",
+    historyFailedHint: "Сохранённая стоимость портфеля доступна; попробуйте загрузить график позже.",
     portfolioHealthTitle: "Состояние данных",
     portfolioHealthStates: {
       fresh: "Свежие",
@@ -187,6 +189,8 @@ const pageCopy = {
     balances: "Balances", save: "Save", realBalance: "Live balance", assets: "Assets",
     recentRuns: "Recent runs", loadingPortfolio: "Loading portfolio", portfolioFailed: "Could not load dashboard",
     noSnapshots: "No snapshots yet", noAssets: "No assets", noHistory: "No history",
+    historyFailed: "Could not load history",
+    historyFailedHint: "Your saved portfolio value is still available; try loading the chart again later.",
     portfolioHealthTitle: "Data health",
     portfolioHealthStates: {
       fresh: "Fresh",
