@@ -16,6 +16,8 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { getPortfolioSummary } from "../api/portfolio";
 import { formatUsd } from "../lib/format";
 import { useAuthStore } from "../store/auth";
+import { PortfolioDailyChange } from "./PortfolioDailyChange";
+import { PortfolioHealthDrawer } from "./PortfolioHealthDrawer";
 
 export function AppLayout() {
   const navigate = useNavigate();
@@ -79,9 +81,17 @@ export function AppLayout() {
                 <p className="eyebrow">Financial</p>
                 <h1>Dashboard</h1>
               </div>
-              <div className="compact-portfolio-value" aria-label="Текущая стоимость портфеля">
-                <span>Portfolio value</span>
-                <strong>{summaryQuery.data ? formatUsd(summaryQuery.data.total_usd) : "—"}</strong>
+              <div className="portfolio-value-cluster">
+                <PortfolioDailyChange change={summaryQuery.data?.change_24h} />
+                <div className="compact-portfolio-value" aria-label="Текущая стоимость портфеля">
+                  <span>Portfolio value</span>
+                  <strong>{summaryQuery.data ? formatUsd(summaryQuery.data.total_usd) : "—"}</strong>
+                </div>
+                <PortfolioHealthDrawer
+                  summary={summaryQuery.data}
+                  isLoading={summaryQuery.isLoading}
+                  isError={summaryQuery.isError}
+                />
               </div>
             </div>
             <div className="topbar-actions">

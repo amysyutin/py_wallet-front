@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getPortfolioSummary } from "../api/portfolio";
 import { formatUsd } from "../lib/format";
+import { PortfolioDailyChange } from "../components/PortfolioDailyChange";
+import { PortfolioHealthDrawer } from "../components/PortfolioHealthDrawer";
 import { useAuthStore } from "../store/auth";
 import { telegramCopy, useLanguage } from "./i18n";
 import { getTelegramWebApp } from "./runtime";
@@ -37,9 +39,18 @@ export function TelegramLayout() {
           <span className="telegram-wallet-logo small"><WalletCards size={22} /></span>
           <div><strong>PyWallet</strong><small>{user?.email ?? "Telegram Mini App"}</small></div>
         </div>
-        <div className="telegram-portfolio-value" aria-label="Portfolio value">
-          <span>Portfolio value</span>
-          <strong>{summaryQuery.data ? formatUsd(summaryQuery.data.total_usd) : "—"}</strong>
+        <div className="portfolio-value-cluster">
+          <PortfolioDailyChange change={summaryQuery.data?.change_24h} language={language} />
+          <div className="telegram-portfolio-value" aria-label="Portfolio value">
+            <span>Portfolio value</span>
+            <strong>{summaryQuery.data ? formatUsd(summaryQuery.data.total_usd) : "—"}</strong>
+          </div>
+          <PortfolioHealthDrawer
+            summary={summaryQuery.data}
+            isLoading={summaryQuery.isLoading}
+            isError={summaryQuery.isError}
+            language={language}
+          />
         </div>
       </header>
       <section className="telegram-workspace"><Outlet /></section>
