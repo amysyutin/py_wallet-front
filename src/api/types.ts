@@ -108,6 +108,7 @@ export type SnapshotJobDetail = SnapshotJobRead & {
   created_at: string;
   finished_at: string | null;
   error_message: string | null;
+  failed_chains?: string[];
 };
 
 export type PortfolioSummary = {
@@ -126,6 +127,7 @@ export type PortfolioSummary = {
     manual_wallets: number;
     missing_wallets: number;
     refresh_in_progress: boolean;
+    retryable_job_id?: number | null;
     chain_issues: Array<{
       chain: string;
       status: string;

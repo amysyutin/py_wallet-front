@@ -14,6 +14,11 @@ export function createSnapshot(walletId?: number | null) {
 
 export const getSnapshotJob = (jobId: number) => apiFetch<SnapshotJobDetail>(`/snapshot-jobs/${jobId}`);
 
+export const retryFailedSnapshotJob = (jobId: number) => apiFetch<SnapshotJobRead>(
+  `/snapshot-jobs/${jobId}/retry-failed`,
+  { method: "POST" },
+);
+
 export function getSnapshotJobs(
   params: {
     limit?: number;
