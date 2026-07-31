@@ -1,6 +1,9 @@
-import { AlertTriangle, CheckCircle2, Clock3, Database, LoaderCircle, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, Clock3, Database, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { getErrorMessage } from "../api/client";
+import { createSnapshot, getSnapshotJob } from "../api/snapshots";
 import type { PortfolioSummary } from "../api/types";
 
 type Props = {
@@ -26,6 +29,14 @@ const copy = {
     missing: "без данных",
     issues: "Проблемные сети",
     refreshing: "Сейчас выполняется обновление.",
+    refresh: "Обновить данные",
+    refreshStarting: "Запускаем обновление…",
+    refreshRunning: "Обновление выполняется. Текущая сумма остаётся видимой.",
+    refreshReused: "Уже запущенное обновление продолжает выполняться.",
+    refreshSuccess: "Данные обновлены.",
+    refreshPartial: "Обновление завершено частично. Доступные данные сохранены.",
+    refreshFailed: "Обновление не завершилось. Текущие сохранённые данные не потеряны.",
+    refreshUnavailable: "Не удалось проверить обновление. Повторите попытку.",
     price: "Качество цен",
     states: { fresh: "Свежие", updating: "Обновляются", partial: "Частичные", stale: "Устарели" },
     prices: {
@@ -50,6 +61,14 @@ const copy = {
     missing: "missing",
     issues: "Affected networks",
     refreshing: "A refresh is currently running.",
+    refresh: "Refresh data",
+    refreshStarting: "Starting refresh…",
+    refreshRunning: "Refresh is running. The current total remains visible.",
+    refreshReused: "The refresh already in progress is still running.",
+    refreshSuccess: "Data refreshed.",
+    refreshPartial: "Refresh completed partially. Available data was kept.",
+    refreshFailed: "Refresh did not complete. Your current saved data was not removed.",
+    refreshUnavailable: "Could not check the refresh. Try again.",
     price: "Price quality",
     states: { fresh: "Fresh", updating: "Updating", partial: "Partial", stale: "Stale" },
     prices: {
@@ -74,7 +93,10 @@ export function PortfolioHealthDrawer({
   isError = false,
   language = "ru",
 }: Props) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [refreshJobId, setRefreshJobId] = useState<number | null>(null);
+  const [refreshWasReused, setRefreshWasReused] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -91,6 +113,49 @@ export function PortfolioHealthDrawer({
         : health
           ? text.states[state]
           : text.title;
+  const refreshMutation = useMutation({
+    mutationFn: () => createSnapshot(),
+    onSuccess: (job) => {
+      setRefreshJobId(job.job_id);
+      setRefreshWasReused(Boolean(job.reused));
+    },
+  });
+  const refreshJobQuery = useQuery({
+    queryKey: ["snapshot-jobs", "manual-refresh", refreshJobId],
+    queryFn: () => getSnapshotJob(refreshJobId as number),
+    enabled: refreshJobId !== null,
+    retry: false,
+    refetchInterval: (query) => {
+      const jobStatus = query.state.data?.status;
+      return jobStatus && ["success", "partial_success", "failed"].includes(jobStatus)
+        ? false
+        : 1_000;
+    },
+  });
+  const refreshStatus = refreshJobQuery.data?.status;
+  const refreshActive = refreshMutation.isPending
+    || refreshStatus === "pending"
+    || refreshStatus === "running"
+    || (refreshJobId === null && Boolean(health?.refresh_in_progress));
+  const refreshMessage = refreshMutation.isPending
+    ? text.refreshStarting
+    : refreshMutation.isError
+      ? `${text.refreshUnavailable} ${getErrorMessage(refreshMutation.error)}`
+      : refreshJobQuery.isError
+        ? text.refreshUnavailable
+        : refreshStatus === "success"
+          ? text.refreshSuccess
+          : refreshStatus === "partial_success"
+            ? text.refreshPartial
+            : refreshStatus === "failed"
+              ? text.refreshFailed
+              : refreshStatus === "pending" || refreshStatus === "running"
+                ? refreshWasReused
+                  ? text.refreshReused
+                  : text.refreshRunning
+                : health?.refresh_in_progress
+                  ? text.refreshing
+                  : null;
 
   useEffect(() => {
     if (!open) return;
@@ -132,6 +197,14 @@ export function PortfolioHealthDrawer({
       trigger?.focus();
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!refreshStatus || !["success", "partial_success", "failed"].includes(refreshStatus)) {
+      return;
+    }
+    void queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+    void queryClient.invalidateQueries({ queryKey: ["wallets"] });
+  }, [queryClient, refreshStatus]);
 
   const uniqueIssues = health
     ? Array.from(new Map(health.chain_issues.map((issue) => [issue.chain, issue])).values())
@@ -194,7 +267,6 @@ export function PortfolioHealthDrawer({
                         {health.price_quality.assets_total > 0 ? <small>{health.price_quality.assets_priced}/{health.price_quality.assets_total}</small> : null}
                       </section>
                     ) : null}
-                    {health.refresh_in_progress ? <em>{text.refreshing}</em> : null}
                     {uniqueIssues.length > 0 ? (
                       <section className="drawer-issues">
                         <strong>{text.issues}</strong>
@@ -205,6 +277,20 @@ export function PortfolioHealthDrawer({
                 ) : (
                   <p className="drawer-state"><Database size={20} />{text.noTime}</p>
                 )}
+                {summary && summary.active_wallets_count > 0 ? (
+                  <section className="drawer-refresh" aria-live="polite">
+                    <button
+                      className="primary-button"
+                      type="button"
+                      disabled={refreshActive}
+                      onClick={() => refreshMutation.mutate()}
+                    >
+                      <RefreshCw className={refreshActive ? "spin" : undefined} size={18} aria-hidden="true" />
+                      {text.refresh}
+                    </button>
+                    {refreshMessage ? <p>{refreshMessage}</p> : null}
+                  </section>
+                ) : null}
               </aside>
             </div>,
             document.body,

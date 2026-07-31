@@ -97,6 +97,7 @@ export type WalletSnapshotRead = {
 export type SnapshotJobRead = {
   job_id: number;
   status: string;
+  reused?: boolean;
 };
 
 export type SnapshotJobDetail = SnapshotJobRead & {

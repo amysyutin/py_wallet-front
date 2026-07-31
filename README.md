@@ -76,8 +76,14 @@ The dashboard is designed to show the current state of the user's portfolio:
 - asset allocation chart
 - portfolio value history chart
 - empty states when no snapshots exist yet
+- a shared web/Telegram data-health drawer with freshness, coverage, price
+  quality, affected networks, and portfolio refresh progress
+- one-click portfolio refresh that preserves the last saved total while polling
+  the owner-scoped job to success, partial success, or failure
 
-Portfolio summary currently follows backend behavior: it is based on the latest EVM wallet snapshots. Manual balances may be handled separately depending on backend aggregation rules.
+Portfolio summary combines the latest persisted EVM snapshots and manual
+balances. The UI does not treat live diagnostics or partial refresh failures as
+a replacement for the last readable persisted total.
 
 ### Wallet Management
 
