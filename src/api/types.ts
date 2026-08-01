@@ -67,6 +67,24 @@ export type WalletDetailSummary = {
   balance_usd: string;
   last_snapshot_at: string | null;
   assets: WalletAssetDetail[];
+  data_health?: {
+    state: "fresh" | "updating" | "partial" | "stale";
+    freshness: "fresh" | "aging" | "stale" | "unknown";
+    as_of: string | null;
+    source: "latest_snapshot" | "manual" | "none";
+    refresh_in_progress: boolean;
+    chain_issues: Array<{
+      chain: string;
+      status: string;
+      error_type: string | null;
+    }>;
+    price_quality: {
+      state: "complete" | "estimated" | "incomplete" | "unknown";
+      sources: Array<"coingecko" | "manual" | "static_dev" | "unknown">;
+      assets_priced: number;
+      assets_total: number;
+    };
+  };
 };
 
 export type ManualBalance = {

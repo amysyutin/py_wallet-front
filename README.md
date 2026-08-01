@@ -87,6 +87,11 @@ Portfolio summary combines the latest persisted EVM snapshots and manual
 balances. The UI does not treat live diagnostics or partial refresh failures as
 a replacement for the last readable persisted total.
 
+Wallet detail follows the same rule: its saved value is paired with scoped
+freshness, source, price quality, active-refresh state, and affected networks.
+The EVM live lookup is opt-in and explicitly diagnostic; opening a wallet page
+does not call RPC providers or replace the saved value/history.
+
 ### Wallet Management
 
 Users can create and manage wallets.
@@ -182,6 +187,7 @@ Main API areas:
 - `GET /wallets`
 - `POST /wallets`
 - `GET /wallets/{id}`
+- `GET /wallets/{id}/summary`
 - `PATCH /wallets/{id}`
 - `DELETE /wallets/{id}`
 - `GET /wallets/{id}/balances`
