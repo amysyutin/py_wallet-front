@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSnapshot, getSnapshotJob } from "../api/snapshots";
+import { createSnapshot, getSnapshotJob, retryFailedSnapshotJob } from "../api/snapshots";
 import type { PortfolioSummary } from "../api/types";
 import { PortfolioDailyChange } from "./PortfolioDailyChange";
 import { PortfolioHealthDrawer } from "./PortfolioHealthDrawer";
@@ -9,10 +9,12 @@ import { PortfolioHealthDrawer } from "./PortfolioHealthDrawer";
 vi.mock("../api/snapshots", () => ({
   createSnapshot: vi.fn(),
   getSnapshotJob: vi.fn(),
+  retryFailedSnapshotJob: vi.fn(),
 }));
 
 const createSnapshotMock = vi.mocked(createSnapshot);
 const getSnapshotJobMock = vi.mocked(getSnapshotJob);
+const retryFailedSnapshotJobMock = vi.mocked(retryFailedSnapshotJob);
 
 const summary: PortfolioSummary = {
   total_usd: "125.50",
@@ -30,6 +32,7 @@ const summary: PortfolioSummary = {
     manual_wallets: 1,
     missing_wallets: 1,
     refresh_in_progress: false,
+    retryable_job_id: 41,
     price_quality: {
       state: "incomplete",
       sources: ["coingecko", "unknown"],
@@ -62,6 +65,7 @@ describe("portfolio header utility", () => {
   beforeEach(() => {
     createSnapshotMock.mockReset();
     getSnapshotJobMock.mockReset();
+    retryFailedSnapshotJobMock.mockReset();
   });
 
   it("keeps severity visible and opens details in a side dialog", () => {
@@ -152,6 +156,37 @@ describe("portfolio header utility", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/provider details/)).not.toBeInTheDocument();
+  });
+
+  it("retries only the owner-safe failed-chain parent and refreshes data after success", async () => {
+    retryFailedSnapshotJobMock.mockResolvedValue({
+      job_id: 46,
+      status: "pending",
+      reused: false,
+    });
+    getSnapshotJobMock.mockResolvedValue({
+      job_id: 46,
+      status: "success",
+      scope_type: "failed_chains",
+      wallet_id: null,
+      group_id: null,
+      trigger_type: "retry",
+      created_at: "2026-07-31T08:10:00Z",
+      finished_at: "2026-07-31T08:10:04Z",
+      error_message: null,
+      failed_chains: [],
+    });
+    const { queryClient } = renderDrawer();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    fireEvent.click(screen.getByRole("button", { name: /Partial/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry affected networks" }));
+
+    await waitFor(() => expect(retryFailedSnapshotJobMock).toHaveBeenCalledWith(41));
+    await waitFor(() => expect(getSnapshotJobMock).toHaveBeenCalledWith(46));
+    await screen.findByText("Affected networks recovered.");
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["portfolio"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["wallets"] });
   });
 
   it("shows a signed 24-hour value change only when comparison is complete", () => {

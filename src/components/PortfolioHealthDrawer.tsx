@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, Clock3, Database, LoaderCircle, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, Database, LoaderCircle, RefreshCw, RotateCcw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getErrorMessage } from "../api/client";
-import { createSnapshot, getSnapshotJob } from "../api/snapshots";
+import { createSnapshot, getSnapshotJob, retryFailedSnapshotJob } from "../api/snapshots";
 import type { PortfolioSummary } from "../api/types";
 
 type Props = {
@@ -37,6 +37,14 @@ const copy = {
     refreshPartial: "Обновление завершено частично. Доступные данные сохранены.",
     refreshFailed: "Обновление не завершилось. Текущие сохранённые данные не потеряны.",
     refreshUnavailable: "Не удалось проверить обновление. Повторите попытку.",
+    retry: "Повторить проблемные сети",
+    retryStarting: "Запускаем повторную проверку проблемных сетей…",
+    retryRunning: "Проверяем только проблемные сети. Текущая сумма остаётся видимой.",
+    retryReused: "Уже запущенная повторная проверка продолжает выполняться.",
+    retrySuccess: "Проблемные сети восстановлены.",
+    retryPartial: "Часть сетей всё ещё недоступна. Можно повторить попытку позже.",
+    retryFailed: "Повторная проверка не завершилась. Сохранённые данные не потеряны.",
+    retryUnavailable: "Не удалось запустить повторную проверку. Повторите попытку.",
     price: "Качество цен",
     states: { fresh: "Свежие", updating: "Обновляются", partial: "Частичные", stale: "Устарели" },
     prices: {
@@ -69,6 +77,14 @@ const copy = {
     refreshPartial: "Refresh completed partially. Available data was kept.",
     refreshFailed: "Refresh did not complete. Your current saved data was not removed.",
     refreshUnavailable: "Could not check the refresh. Try again.",
+    retry: "Retry affected networks",
+    retryStarting: "Starting another check for affected networks…",
+    retryRunning: "Only affected networks are being checked. The current total remains visible.",
+    retryReused: "The retry already in progress is still running.",
+    retrySuccess: "Affected networks recovered.",
+    retryPartial: "Some networks are still unavailable. You can retry later.",
+    retryFailed: "The retry did not complete. Your saved data was not removed.",
+    retryUnavailable: "Could not start the retry. Try again.",
     price: "Price quality",
     states: { fresh: "Fresh", updating: "Updating", partial: "Partial", stale: "Stale" },
     prices: {
@@ -97,6 +113,8 @@ export function PortfolioHealthDrawer({
   const [open, setOpen] = useState(false);
   const [refreshJobId, setRefreshJobId] = useState<number | null>(null);
   const [refreshWasReused, setRefreshWasReused] = useState(false);
+  const [retryJobId, setRetryJobId] = useState<number | null>(null);
+  const [retryWasReused, setRetryWasReused] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -133,10 +151,34 @@ export function PortfolioHealthDrawer({
     },
   });
   const refreshStatus = refreshJobQuery.data?.status;
+  const retryMutation = useMutation({
+    mutationFn: (parentJobId: number) => retryFailedSnapshotJob(parentJobId),
+    onSuccess: (job) => {
+      setRetryJobId(job.job_id);
+      setRetryWasReused(Boolean(job.reused));
+    },
+  });
+  const retryJobQuery = useQuery({
+    queryKey: ["snapshot-jobs", "failed-chain-retry", retryJobId],
+    queryFn: () => getSnapshotJob(retryJobId as number),
+    enabled: retryJobId !== null,
+    retry: false,
+    refetchInterval: (query) => {
+      const jobStatus = query.state.data?.status;
+      return jobStatus && ["success", "partial_success", "failed"].includes(jobStatus)
+        ? false
+        : 1_000;
+    },
+  });
+  const retryStatus = retryJobQuery.data?.status;
   const refreshActive = refreshMutation.isPending
     || refreshStatus === "pending"
     || refreshStatus === "running"
     || (refreshJobId === null && Boolean(health?.refresh_in_progress));
+  const retryActive = retryMutation.isPending
+    || retryStatus === "pending"
+    || retryStatus === "running";
+  const operationActive = refreshActive || retryActive;
   const refreshMessage = refreshMutation.isPending
     ? text.refreshStarting
     : refreshMutation.isError
@@ -156,6 +198,32 @@ export function PortfolioHealthDrawer({
                 : health?.refresh_in_progress
                   ? text.refreshing
                   : null;
+  const latestRetryableJob = retryStatus === "partial_success" || retryStatus === "failed"
+    ? retryJobQuery.data
+    : refreshStatus === "partial_success" || refreshStatus === "failed"
+      ? refreshJobQuery.data
+      : null;
+  const retryParentJobId = latestRetryableJob?.job_id ?? health?.retryable_job_id ?? null;
+  const retryFailedChains = latestRetryableJob?.failed_chains
+    ?? refreshJobQuery.data?.failed_chains
+    ?? [];
+  const retryMessage = retryMutation.isPending
+    ? text.retryStarting
+    : retryMutation.isError
+      ? `${text.retryUnavailable} ${getErrorMessage(retryMutation.error)}`
+      : retryJobQuery.isError
+        ? text.retryUnavailable
+        : retryStatus === "success"
+          ? text.retrySuccess
+          : retryStatus === "partial_success"
+            ? text.retryPartial
+            : retryStatus === "failed"
+              ? text.retryFailed
+              : retryStatus === "pending" || retryStatus === "running"
+                ? retryWasReused
+                  ? text.retryReused
+                  : text.retryRunning
+                : null;
 
   useEffect(() => {
     if (!open) return;
@@ -205,6 +273,14 @@ export function PortfolioHealthDrawer({
     void queryClient.invalidateQueries({ queryKey: ["portfolio"] });
     void queryClient.invalidateQueries({ queryKey: ["wallets"] });
   }, [queryClient, refreshStatus]);
+
+  useEffect(() => {
+    if (!retryStatus || !["success", "partial_success", "failed"].includes(retryStatus)) {
+      return;
+    }
+    void queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+    void queryClient.invalidateQueries({ queryKey: ["wallets"] });
+  }, [queryClient, retryStatus]);
 
   const uniqueIssues = health
     ? Array.from(new Map(health.chain_issues.map((issue) => [issue.chain, issue])).values())
@@ -282,13 +358,25 @@ export function PortfolioHealthDrawer({
                     <button
                       className="primary-button"
                       type="button"
-                      disabled={refreshActive}
+                      disabled={operationActive}
                       onClick={() => refreshMutation.mutate()}
                     >
                       <RefreshCw className={refreshActive ? "spin" : undefined} size={18} aria-hidden="true" />
                       {text.refresh}
                     </button>
                     {refreshMessage ? <p>{refreshMessage}</p> : null}
+                    {retryParentJobId && (uniqueIssues.length > 0 || retryFailedChains.length > 0) ? (
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        disabled={operationActive}
+                        onClick={() => retryMutation.mutate(retryParentJobId)}
+                      >
+                        <RotateCcw className={retryActive ? "spin" : undefined} size={18} aria-hidden="true" />
+                        {text.retry}
+                      </button>
+                    ) : null}
+                    {retryMessage ? <p>{retryMessage}</p> : null}
                   </section>
                 ) : null}
               </aside>

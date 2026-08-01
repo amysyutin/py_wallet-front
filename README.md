@@ -80,6 +80,8 @@ The dashboard is designed to show the current state of the user's portfolio:
   quality, affected networks, and portfolio refresh progress
 - one-click portfolio refresh that preserves the last saved total while polling
   the owner-scoped job to success, partial success, or failure
+- an owner-safe affected-network retry action that polls the child job and
+  refreshes portfolio data without exposing provider errors or identifiers
 
 Portfolio summary combines the latest persisted EVM snapshots and manual
 balances. The UI does not treat live diagnostics or partial refresh failures as

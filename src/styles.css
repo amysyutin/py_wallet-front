@@ -409,7 +409,8 @@ select:focus {
   border-top: 1px solid #e8e3df;
 }
 
-.drawer-refresh .primary-button {
+.drawer-refresh .primary-button,
+.drawer-refresh .secondary-button {
   justify-content: center;
   min-height: 44px;
 }
