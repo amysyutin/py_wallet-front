@@ -1,8 +1,18 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createSnapshot, getSnapshotJob } from "../api/snapshots";
 import type { PortfolioSummary } from "../api/types";
 import { PortfolioDailyChange } from "./PortfolioDailyChange";
 import { PortfolioHealthDrawer } from "./PortfolioHealthDrawer";
+
+vi.mock("../api/snapshots", () => ({
+  createSnapshot: vi.fn(),
+  getSnapshotJob: vi.fn(),
+}));
+
+const createSnapshotMock = vi.mocked(createSnapshot);
+const getSnapshotJobMock = vi.mocked(getSnapshotJob);
 
 const summary: PortfolioSummary = {
   total_usd: "125.50",
@@ -33,9 +43,29 @@ const summary: PortfolioSummary = {
   },
 };
 
+function renderDrawer() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  const result = render(
+    <QueryClientProvider client={queryClient}>
+      <PortfolioHealthDrawer summary={summary} language="en" />
+    </QueryClientProvider>,
+  );
+  return { ...result, queryClient };
+}
+
 describe("portfolio header utility", () => {
+  beforeEach(() => {
+    createSnapshotMock.mockReset();
+    getSnapshotJobMock.mockReset();
+  });
+
   it("keeps severity visible and opens details in a side dialog", () => {
-    render(<PortfolioHealthDrawer summary={summary} language="en" />);
+    renderDrawer();
 
     fireEvent.click(screen.getByRole("button", { name: /Partial/ }));
 
@@ -47,6 +77,81 @@ describe("portfolio header utility", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("refreshes the portfolio, polls the job, and keeps terminal feedback in the drawer", async () => {
+    createSnapshotMock.mockResolvedValue({ job_id: 44, status: "pending", reused: false });
+    getSnapshotJobMock.mockResolvedValue({
+      job_id: 44,
+      status: "success",
+      scope_type: "all",
+      wallet_id: null,
+      group_id: null,
+      trigger_type: "manual",
+      created_at: "2026-07-31T08:00:00Z",
+      finished_at: "2026-07-31T08:00:05Z",
+      error_message: null,
+    });
+    const { queryClient } = renderDrawer();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    fireEvent.click(screen.getByRole("button", { name: /Partial/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh data" }));
+
+    await waitFor(() => expect(createSnapshotMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getSnapshotJobMock).toHaveBeenCalledWith(44));
+    await screen.findByText("Data refreshed.");
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["portfolio"] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["wallets"] });
+  });
+
+  it("does not enqueue another refresh while data health reports an active job", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <PortfolioHealthDrawer
+          summary={{
+            ...summary,
+            data_health: {
+              ...summary.data_health!,
+              state: "updating",
+              refresh_in_progress: true,
+            },
+          }}
+          language="en"
+        />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Updating/ }));
+    expect(screen.getByRole("button", { name: "Refresh data" })).toBeDisabled();
+    expect(screen.getByText("A refresh is currently running.")).toBeInTheDocument();
+    expect(createSnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it("explains a failed refresh without implying that saved data was removed", async () => {
+    createSnapshotMock.mockResolvedValue({ job_id: 45, status: "pending" });
+    getSnapshotJobMock.mockResolvedValue({
+      job_id: 45,
+      status: "failed",
+      scope_type: "all",
+      wallet_id: null,
+      group_id: null,
+      trigger_type: "manual",
+      created_at: "2026-07-31T08:00:00Z",
+      finished_at: "2026-07-31T08:00:05Z",
+      error_message: "provider details are not shown",
+    });
+    renderDrawer();
+
+    fireEvent.click(screen.getByRole("button", { name: /Partial/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh data" }));
+
+    expect(
+      await screen.findByText(
+        "Refresh did not complete. Your current saved data was not removed.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/provider details/)).not.toBeInTheDocument();
   });
 
   it("shows a signed 24-hour value change only when comparison is complete", () => {

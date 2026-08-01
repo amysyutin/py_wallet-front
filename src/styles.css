@@ -401,6 +401,26 @@ select:focus {
   line-height: 1.55;
 }
 
+.drawer-refresh {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #e8e3df;
+}
+
+.drawer-refresh .primary-button {
+  justify-content: center;
+  min-height: 44px;
+}
+
+.drawer-refresh p {
+  margin: 0;
+  color: #625e5b;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
 .data-health-coverage {
   display: flex;
   align-items: baseline;
