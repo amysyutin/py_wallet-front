@@ -1,6 +1,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Plus, Save, Trash2 } from "lucide-react";
+import { Activity, Copy, Plus, Save, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getErrorMessage } from "../api/client";
@@ -52,7 +52,7 @@ export function WalletDetail() {
   const liveAssetsQuery = useQuery({
     queryKey: ["wallet", walletId, "assets"],
     queryFn: () => getWalletAssets(walletId),
-    enabled: walletQuery.data?.wallet_type === "evm",
+    enabled: false,
   });
   const balancesQuery = useQuery({
     queryKey: ["wallet", walletId, "balances"],
@@ -88,13 +88,15 @@ export function WalletDetail() {
   const wallet = walletQuery.data;
   const isEvm = wallet.wallet_type === "evm";
   const isLiveUnavailable = liveAssetsQuery.data && !hasUsableLiveBalance(liveAssetsQuery.data);
-  const liveBalanceLabel = !isEvm
-    ? formatUsd(summaryQuery.data?.balance_usd)
-    : liveAssetsQuery.isLoading
-      ? "Загрузка..."
-      : liveAssetsQuery.isError || isLiveUnavailable
-        ? `${copy.liveBalance} unavailable`
-        : formatUsd(liveAssetsQuery.data?.total_usd);
+  const health = summaryQuery.data?.data_health;
+  const savedSource = (health?.source ?? (summaryQuery.data?.last_snapshot_at ? "latest_snapshot" : isEvm ? "none" : "manual")) === "latest_snapshot"
+    ? copy.walletSourceSnapshot
+    : (health?.source ?? (isEvm ? "none" : "manual")) === "manual"
+      ? copy.walletSourceManual
+      : copy.walletSourceNone;
+  const liveBalanceLabel = liveAssetsQuery.data && !isLiveUnavailable
+    ? formatUsd(liveAssetsQuery.data.total_usd)
+    : null;
 
   function handleAddBalance(event: FormEvent) {
     event.preventDefault();
@@ -126,10 +128,35 @@ export function WalletDetail() {
         <p className="full-address-line"><b>{copy.address}:</b> {wallet.address || "manual wallet"}</p>
         <p><b>{copy.networks}:</b> {isEvm ? copy.allNetworks : wallet.chain_type}</p>
         <p><b>{copy.status}:</b> {wallet.is_active ? "active" : "archived"}</p>
-        <p><b>{copy.liveBalance}:</b> {liveBalanceLabel}</p>
-        <p><b>{copy.snapshotBalance}:</b> {formatUsd(summaryQuery.data?.balance_usd)}</p>
-        <p><b>{copy.lastSnapshot}:</b> {summaryQuery.data?.last_snapshot_at ? new Date(summaryQuery.data.last_snapshot_at).toLocaleString() : copy.none}</p>
       </div>
+
+      <section className={`wallet-data-health data-health-${health?.state ?? "neutral"}`} aria-live="polite">
+        <div>
+          <span className="eyebrow">{copy.walletSavedValue}</span>
+          <strong>{formatUsd(summaryQuery.data?.balance_usd)}</strong>
+          <p>{copy.walletSavedHint}</p>
+        </div>
+        <div className="wallet-health-facts">
+          {health ? <span className="status-pill">{copy.portfolioHealthStates[health.state]}</span> : null}
+          <p><b>{copy.walletDataSource}:</b> {savedSource}</p>
+          <p><b>{copy.walletAsOf}:</b> {health?.as_of ? new Date(health.as_of).toLocaleString() : copy.none}</p>
+          {health ? (
+            <p>
+              <b>{copy.portfolioPriceQuality}:</b> {copy.portfolioPriceStates[health.price_quality.state]}
+              {health.price_quality.assets_total > 0 ? ` (${health.price_quality.assets_priced}/${health.price_quality.assets_total})` : ""}
+            </p>
+          ) : null}
+          {health?.refresh_in_progress ? <p>{copy.portfolioHealthRefreshing}</p> : null}
+        </div>
+        {health?.chain_issues.length ? (
+          <div className="wallet-health-issues">
+            <b>{copy.walletAffectedNetworks}</b>
+            <div className="chip-row">
+              {health.chain_issues.map((issue) => <span className="chip" key={issue.chain}>{issue.chain}</span>)}
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       {isEvm ? (
         <form className="wallet-settings-form" onSubmit={handleWalletUpdate}>
@@ -186,10 +213,22 @@ export function WalletDetail() {
 
       {isEvm ? (
         <section className="nested-section">
-          <SectionHeader eyebrow="Live" title={`${copy.realBalance} ${liveBalanceLabel}`} />
-          {liveAssetsQuery.isLoading ? <PageState title="Смотрим live assets" /> : null}
+          <SectionHeader eyebrow="Live" title={copy.walletLiveTitle} />
+          <p className="muted">{copy.walletLiveHint}</p>
+          <button
+            className="secondary-button wallet-live-check"
+            type="button"
+            disabled={liveAssetsQuery.isFetching}
+            onClick={() => void liveAssetsQuery.refetch()}
+          >
+            <Activity size={18} />
+            {liveAssetsQuery.isFetching ? copy.walletCheckingLive : copy.walletCheckLive}
+          </button>
+          {!liveAssetsQuery.data && !liveAssetsQuery.isError && !liveAssetsQuery.isFetching ? <p className="muted">{copy.walletLiveNotRun}</p> : null}
+          {liveAssetsQuery.isFetching ? <PageState title={copy.walletCheckingLive} /> : null}
           {liveAssetsQuery.isError ? <p className="form-error">{getErrorMessage(liveAssetsQuery.error)}</p> : null}
-          {isLiveUnavailable ? <p className="form-error">Live RPC не настроен для выбранных сетей. Ниже остается snapshot summary.</p> : null}
+          {isLiveUnavailable ? <p className="form-error">{copy.walletLiveUnavailable}</p> : null}
+          {liveBalanceLabel ? <p className="wallet-live-total"><b>{copy.liveBalance}:</b> {liveBalanceLabel}</p> : null}
           <div className="table-list">
             {(liveAssetsQuery.data?.chains ?? []).map((chain) => {
               const tokenTotal = chain.tokens.reduce((sum, token) => sum + Number(token.usd || 0), 0);
@@ -212,7 +251,7 @@ export function WalletDetail() {
       ) : null}
 
       <section className="nested-section">
-        <SectionHeader eyebrow="Snapshot summary" title={`${copy.assets} ${formatUsd(summaryQuery.data?.balance_usd)}`} />
+        <SectionHeader eyebrow={copy.walletSourceSnapshot} title={`${copy.assets} ${formatUsd(summaryQuery.data?.balance_usd)}`} />
         {summaryQuery.isLoading ? <PageState title="Загружаем summary" /> : null}
         {summaryQuery.isError ? <p className="form-error">{getErrorMessage(summaryQuery.error)}</p> : null}
         <div className="table-list">

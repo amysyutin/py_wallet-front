@@ -1720,6 +1720,108 @@ select:focus {
   grid-template-columns: minmax(0, 2fr) minmax(160px, 0.7fr) minmax(140px, 0.6fr);
 }
 
+.wallet-data-health {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(220px, 1fr);
+  gap: 18px 28px;
+  margin: 18px 0;
+  border: 1px solid #e8e3df;
+  border-left: 5px solid #8c8987;
+  border-radius: 22px;
+  padding: 20px;
+  background: #fbfaf9;
+}
+
+.wallet-data-health.data-health-fresh {
+  border-left-color: #2f9467;
+}
+
+.wallet-data-health.data-health-updating {
+  border-left-color: #d1a128;
+}
+
+.wallet-data-health.data-health-partial,
+.wallet-data-health.data-health-stale {
+  border-left-color: #d5533f;
+}
+
+.wallet-data-health strong {
+  display: block;
+  margin-top: 5px;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.wallet-data-health p,
+.wallet-health-issues b {
+  margin: 7px 0 0;
+  color: #625e5b;
+  line-height: 1.45;
+}
+
+.wallet-health-facts {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 4px;
+}
+
+.wallet-health-facts .status-pill {
+  margin-bottom: 4px;
+}
+
+.wallet-health-issues {
+  grid-column: 1 / -1;
+}
+
+.wallet-health-issues .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.wallet-health-issues .chip {
+  min-height: 34px;
+  color: #8d3025;
+  background: #ffdcd5;
+}
+
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid #d9d3ce;
+  border-radius: 999px;
+  padding: 0 20px;
+  color: #332f2c;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.secondary-button:hover:not(:disabled),
+.secondary-button:focus-visible:not(:disabled) {
+  border-color: #a8a09a;
+  background: #f7f4f1;
+}
+
+.secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.wallet-live-check {
+  margin-top: 12px;
+}
+
+.wallet-live-total {
+  margin: 14px 0 0;
+  font-size: 1.05rem;
+}
+
 .full-address-line {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -2006,6 +2108,14 @@ select:focus {
   .wallet-form,
   .inline-form {
     grid-template-columns: 1fr;
+  }
+
+  .wallet-data-health {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-health-issues {
+    grid-column: auto;
   }
 
   .hero-card {
