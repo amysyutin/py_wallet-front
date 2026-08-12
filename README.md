@@ -213,6 +213,11 @@ Main API areas:
 - Lucide React
 - ESLint
 
+Page modules are loaded on demand at React Router boundaries. Production builds
+also enforce a 500 kB uncompressed budget for the initial JavaScript entry chunk
+so a new eager page import cannot silently collapse the route chunks back into a
+single bundle.
+
 ## Local Development
 
 Install dependencies:

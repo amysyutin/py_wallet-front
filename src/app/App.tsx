@@ -1,36 +1,98 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import { AdminRoute } from "../routes/AdminRoute";
-import { ProtectedRoute } from "../routes/ProtectedRoute";
 import { AppLayout } from "../components/AppLayout";
+import { PageState } from "../components/PageState";
 import { RouteError } from "../components/RouteError";
-import { AdminBinance } from "../pages/AdminBinance";
-import { AccountSettings } from "../pages/AccountSettings";
-import { Dashboard } from "../pages/Dashboard";
-import { Explore } from "../pages/Explore";
-import { Groups } from "../pages/Groups";
-import { Login } from "../pages/Login";
-import { Register } from "../pages/Register";
-import { WalletDetail } from "../pages/WalletDetail";
-import { Wallets } from "../pages/Wallets";
-import { TelegramSettings } from "../pages/TelegramSettings";
+import { ProtectedRoute } from "../routes/ProtectedRoute";
 import { TelegramAuth } from "../telegram/TelegramAuth";
 import { TelegramLayout } from "../telegram/TelegramLayout";
+import { lazyNamedRoute } from "./lazyNamedRoute";
+
+const accountSettingsRoute = lazyNamedRoute(
+  () => import("../pages/AccountSettings"),
+  "AccountSettings",
+);
+const adminBinanceRoute = lazyNamedRoute(
+  () => import("./AdminBinanceRoute"),
+  "AdminBinanceRoute",
+);
+const dashboardRoute = lazyNamedRoute(
+  () => import("../pages/Dashboard"),
+  "Dashboard",
+);
+const exploreRoute = lazyNamedRoute(() => import("../pages/Explore"), "Explore");
+const groupsRoute = lazyNamedRoute(() => import("../pages/Groups"), "Groups");
+const loginRoute = lazyNamedRoute(() => import("../pages/Login"), "Login");
+const registerRoute = lazyNamedRoute(
+  () => import("../pages/Register"),
+  "Register",
+);
+const telegramSettingsRoute = lazyNamedRoute(
+  () => import("../pages/TelegramSettings"),
+  "TelegramSettings",
+);
+const walletDetailRoute = lazyNamedRoute(
+  () => import("../pages/WalletDetail"),
+  "WalletDetail",
+);
+const walletsRoute = lazyNamedRoute(() => import("../pages/Wallets"), "Wallets");
+
+function RouteLoading() {
+  return <PageState title="Загружаем страницу" />;
+}
 
 const router = createBrowserRouter([
-  { path: "/", element: <ProtectedRoute><AppLayout /></ProtectedRoute>, errorElement: <RouteError />, children: [{ index: true, element: <Dashboard /> }, { path: "groups", element: <Groups /> }, { path: "wallets", element: <Wallets /> }, { path: "wallets/:walletId", element: <WalletDetail /> }, { path: "explore", element: <Explore /> }, { path: "settings", element: <AccountSettings /> }, { path: "admin/binance", element: <AdminRoute><AdminBinance /></AdminRoute> }] },
   {
-    path: "/telegram",
-    element: <TelegramAuth><ProtectedRoute unauthenticatedTo="/telegram"><TelegramLayout /></ProtectedRoute></TelegramAuth>,
+    path: "/",
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     errorElement: <RouteError />,
+    HydrateFallback: RouteLoading,
     children: [
-      { index: true, element: <Dashboard /> },
-      { path: "wallets", element: <Wallets /> },
-      { path: "wallets/:walletId", element: <WalletDetail /> },
-      { path: "groups", element: <Groups /> },
-      { path: "settings", element: <TelegramSettings /> },
+      { index: true, lazy: dashboardRoute },
+      { path: "groups", lazy: groupsRoute },
+      { path: "wallets", lazy: walletsRoute },
+      { path: "wallets/:walletId", lazy: walletDetailRoute },
+      { path: "explore", lazy: exploreRoute },
+      { path: "settings", lazy: accountSettingsRoute },
+      { path: "admin/binance", lazy: adminBinanceRoute },
     ],
   },
-  { path: "/login", element: <Login />, errorElement: <RouteError /> },
-  { path: "/register", element: <Register />, errorElement: <RouteError /> },
+  {
+    path: "/telegram",
+    element: (
+      <TelegramAuth>
+        <ProtectedRoute unauthenticatedTo="/telegram">
+          <TelegramLayout />
+        </ProtectedRoute>
+      </TelegramAuth>
+    ),
+    errorElement: <RouteError />,
+    HydrateFallback: RouteLoading,
+    children: [
+      { index: true, lazy: dashboardRoute },
+      { path: "wallets", lazy: walletsRoute },
+      { path: "wallets/:walletId", lazy: walletDetailRoute },
+      { path: "groups", lazy: groupsRoute },
+      { path: "settings", lazy: telegramSettingsRoute },
+    ],
+  },
+  {
+    path: "/login",
+    lazy: loginRoute,
+    errorElement: <RouteError />,
+    HydrateFallback: RouteLoading,
+  },
+  {
+    path: "/register",
+    lazy: registerRoute,
+    errorElement: <RouteError />,
+    HydrateFallback: RouteLoading,
+  },
 ]);
-export function App() { return <RouterProvider router={router} />; }
+
+export function App() {
+  return <RouterProvider router={router} />;
+}
