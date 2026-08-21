@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, RefreshCw, WalletCards } from "lucide-react";
 import { useLayoutEffect, type ReactNode } from "react";
 import { getErrorMessage } from "../api/client";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { loginWithTelegram } from "../api/telegram";
 import { useAuthStore } from "../store/auth";
 import { getTelegramInitData, initializeTelegram } from "./runtime";
@@ -30,6 +31,7 @@ export function TelegramAuth({ children }: { children: ReactNode }) {
     return (
       <main className="telegram-gate">
         <section className="telegram-gate-card">
+          <LanguageSwitcher />
           <span className="telegram-wallet-logo"><WalletCards size={36} /></span>
           <h1>{copy.unavailable}</h1>
           <p>{copy.unavailableHint}</p>
@@ -45,6 +47,7 @@ export function TelegramAuth({ children }: { children: ReactNode }) {
     return (
       <main className="telegram-gate">
         <section className="telegram-gate-card">
+          <LanguageSwitcher />
           <span className="telegram-wallet-logo pulse"><WalletCards size={36} /></span>
           <h1>{copy.loading}</h1>
           <p>{copy.loadingHint}</p>
@@ -57,11 +60,12 @@ export function TelegramAuth({ children }: { children: ReactNode }) {
     return (
       <main className="telegram-gate">
         <section className="telegram-gate-card">
+          <LanguageSwitcher />
           <span className="telegram-wallet-logo"><WalletCards size={36} /></span>
           <h1>{copy.unavailable}</h1>
           <p className="form-error">{getErrorMessage(authQuery.error)}</p>
           <button className="primary-button" type="button" onClick={() => authQuery.refetch()}>
-            <RefreshCw size={18} /> Retry
+            <RefreshCw size={18} /> {copy.retry}
           </button>
         </section>
       </main>

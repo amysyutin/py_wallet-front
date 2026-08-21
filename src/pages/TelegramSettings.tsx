@@ -89,7 +89,7 @@ export function TelegramSettings() {
     linkMutation.mutate({ email, password });
   }
 
-  if (settingsQuery.isLoading) return <section className="telegram-settings-card"><h2>{copy.settings}</h2><p className="muted">Loading…</p></section>;
+  if (settingsQuery.isLoading) return <section className="telegram-settings-card"><h2>{copy.settings}</h2><p className="muted">{language === "ru" ? "Загрузка…" : "Loading…"}</p></section>;
 
   return (
     <div className="telegram-settings-grid">

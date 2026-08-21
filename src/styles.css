@@ -162,6 +162,51 @@ select:focus {
   background: #f7f7f6;
 }
 
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  width: fit-content;
+  min-height: 42px;
+  border: 1px solid #e8e3df;
+  border-radius: 999px;
+  padding: 4px 5px 4px 11px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.language-switcher > svg {
+  margin-right: 2px;
+  color: #77716d;
+}
+
+.language-switcher button {
+  min-width: 40px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #77716d;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.language-switcher button.active {
+  color: #ffffff;
+  background: #171513;
+}
+
+.language-switcher-compact {
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
+.language-switcher-compact span {
+  line-height: 1;
+}
+
 .workspace {
   display: grid;
   align-content: start;
@@ -1497,10 +1542,17 @@ select:focus {
 }
 
 .auth-panel {
+  position: relative;
   display: grid;
   gap: 20px;
   width: min(480px, 100%);
   padding: 34px;
+}
+
+.auth-panel > .language-switcher {
+  position: absolute;
+  top: 22px;
+  right: 22px;
 }
 
 .brand {
@@ -1965,7 +2017,8 @@ select:focus {
   }
 
   .sidebar a,
-  .sidebar > .round-button.ghost {
+  .sidebar > .round-button.ghost,
+  .sidebar > .language-switcher-compact {
     width: 100%;
     min-width: 52px;
     height: 56px;
@@ -1977,6 +2030,10 @@ select:focus {
   }
 
   .sidebar > .round-button.ghost {
+    flex: 0 0 52px;
+  }
+
+  .sidebar > .language-switcher-compact {
     flex: 0 0 52px;
   }
 

@@ -18,7 +18,7 @@ export function Groups() {
   function handleCreate(event: FormEvent) { event.preventDefault(); createMutation.mutate({ name, description: description || undefined }); }
   return (
     <section className="content-band">
-      <SectionHeader eyebrow="Wallet groups" title={copy.groupsTitle} />
+      <SectionHeader eyebrow={copy.layout.groups} title={copy.groupsTitle} />
       <form className="inline-form" onSubmit={handleCreate}>
         <input value={name} onChange={(event) => setName(event.target.value)} placeholder={copy.groupName} required />
         <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder={copy.description} />
@@ -31,7 +31,7 @@ export function Groups() {
         {(groupsQuery.data ?? []).sort((a, b) => a.sort_order - b.sort_order).map((group) => (
           <article className="table-row" key={group.id}>
             <div><strong>{group.name}</strong><span>{group.description || copy.noDescription}</span></div>
-            <span>{group.wallets_count ?? 0} wallets</span>
+            <span>{group.wallets_count ?? 0} {copy.groupsWallets}</span>
             <button className="icon-button danger" type="button" onClick={() => deleteMutation.mutate(group.id)} aria-label={copy.deleteGroup}><Trash2 size={17} /></button>
           </article>
         ))}

@@ -153,7 +153,7 @@ export function Wallets() {
   return (
     <section className="content-band">
       <SectionHeader
-        eyebrow="Wallets"
+        eyebrow={copy.layout.wallets}
         title={copy.walletsTitle}
         actions={
           <label className="toggle">
@@ -167,7 +167,7 @@ export function Wallets() {
         <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder={copy.name} required minLength={1} maxLength={100} />
         <select value={walletType} onChange={(event) => setWalletType(event.target.value as WalletType)}>
           <option value="evm">EVM</option>
-          <option value="manual">Manual</option>
+          <option value="manual">{copy.wallet.manual}</option>
         </select>
         {walletType === "evm" ? (
           <input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="0x..." required maxLength={42} />
@@ -207,16 +207,16 @@ export function Wallets() {
           const isLiveError = liveAssetsQuery?.isError === true;
           const isLiveUnavailable = liveAssetsQuery?.data && !hasUsableLiveBalance(liveAssetsQuery.data);
           const snapshotSource = wallet.balance_source === "latest_snapshot"
-            ? "latest snapshot"
+            ? copy.wallet.latestSnapshot
             : wallet.balance_source === "manual"
-              ? "manual"
-              : "no snapshot";
+              ? copy.wallet.manual
+              : copy.wallet.noSnapshot;
           const balanceSource = hasLiveBalance
-            ? "live"
+            ? copy.wallet.live
             : isLiveLoading
-              ? `${snapshotSource} · live loading`
+              ? `${snapshotSource} · ${copy.wallet.liveLoading}`
               : isLiveError || isLiveUnavailable
-                ? `${snapshotSource} · live unavailable`
+                ? `${snapshotSource} · ${copy.wallet.liveUnavailable}`
                 : snapshotSource;
           const balanceLabel = formatUsd(hasLiveBalance ? liveBalance : wallet.balance_usd);
 
@@ -235,7 +235,7 @@ export function Wallets() {
                 <strong>{balanceLabel}</strong>
                 <span>
                   {balanceSource}
-                  {!hasLiveBalance && wallet.last_snapshot_at ? ` · ${new Date(wallet.last_snapshot_at).toLocaleDateString("ru-RU")}` : ""}
+                  {!hasLiveBalance && wallet.last_snapshot_at ? ` · ${new Date(wallet.last_snapshot_at).toLocaleDateString(copy.locale)}` : ""}
                 </span>
                 {wallet.wallet_type === "evm" && wallet.is_active ? (
                   <button
@@ -252,7 +252,7 @@ export function Wallets() {
               <span className="wallet-assets-preview">
                 {wallet.top_assets.length > 0
                   ? wallet.top_assets.slice(0, 2).map((asset) => asset.symbol).join(", ")
-                  : `${wallet.balances_count} assets`}
+                  : `${wallet.balances_count} ${copy.wallet.assets}`}
               </span>
               <button
                 className={`chip copy-chip${copiedWalletId === wallet.id ? " copied" : ""}`}
@@ -260,13 +260,13 @@ export function Wallets() {
                 onClick={() => void copyAddress(wallet.id, wallet.address)}
                 disabled={!wallet.address}
                 title={wallet.address ? copy.copyAddress : copy.copyAddress}
-                aria-label={wallet.address ? `Скопировать адрес ${wallet.label}` : `У кошелька ${wallet.label} нет адреса`}
+                aria-label={wallet.address ? `${copy.wallet.copyFor} ${wallet.label}` : `${copy.wallet.noAddressFor} ${wallet.label}`}
               >
                 {copiedWalletId === wallet.id ? <Check size={14} /> : <Copy size={14} />}
                 {copiedWalletId === wallet.id ? copy.copied : shortAddress(wallet.address)}
               </button>
-              <span className={wallet.is_active ? "status-pill active" : "status-pill"}>{wallet.is_active ? "active" : "archived"}</span>
-              <Link className="open-wallet-button" to={`${wallet.id}`} aria-label={`Открыть кошелек ${wallet.label}`}>
+              <span className={wallet.is_active ? "status-pill active" : "status-pill"}>{wallet.is_active ? copy.wallet.active : copy.wallet.archived}</span>
+              <Link className="open-wallet-button" to={`${wallet.id}`} aria-label={`${copy.wallet.open} ${wallet.label}`}>
                 {copy.open}
                 <ExternalLink size={16} />
               </Link>

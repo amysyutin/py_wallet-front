@@ -1,9 +1,43 @@
 
 import { useAuthStore } from "../store/auth";
+import { useLanguage } from "../telegram/i18n";
 import { isTelegramMiniApp } from "../telegram/runtime";
 
 type RequestOptions = RequestInit & { auth?: boolean };
 type FastApiError = { detail?: string | Array<{ msg: string }> };
+
+const apiCopy = {
+  ru: {
+    badRequest: "Некорректный запрос к backend",
+    unauthorized: "Неверный email/пароль или сессия истекла",
+    forbidden: "Недостаточно прав",
+    notFound: "Ресурс не найден",
+    methodNotAllowed: "Метод не разрешён для этого endpoint",
+    conflict: "Конфликт данных",
+    validation: "Проверьте заполнение формы",
+    server: "Backend вернул внутреннюю ошибку",
+    requestFailed: "Запрос не выполнен",
+    unavailable: "Backend недоступен. Проверьте локальный backend или Vite proxy",
+    unknown: "Неизвестная ошибка",
+  },
+  en: {
+    badRequest: "Invalid backend request",
+    unauthorized: "Invalid email/password or the session has expired",
+    forbidden: "Insufficient permissions",
+    notFound: "Resource not found",
+    methodNotAllowed: "Method is not allowed for this endpoint",
+    conflict: "Data conflict",
+    validation: "Check the form fields",
+    server: "The backend returned an internal error",
+    requestFailed: "Request failed",
+    unavailable: "Backend unavailable. Check the local backend or Vite proxy",
+    unknown: "Unknown error",
+  },
+} as const;
+
+function currentCopy() {
+  return apiCopy[useLanguage.getState().language];
+}
 
 export class ApiError extends Error {
   status: number;
@@ -17,19 +51,20 @@ export class ApiError extends Error {
 
 function parseError(status: number, payload: unknown) {
   const data = payload as FastApiError;
+  const copy = currentCopy();
 
   if (typeof data?.detail === "string") return data.detail;
   if (Array.isArray(data?.detail)) return data.detail.map((item) => item.msg).join("; ");
   if (typeof payload === "string" && payload.trim()) return payload.trim();
-  if (status === 400) return "Некорректный запрос к backend";
-  if (status === 401) return "Неверный email/пароль или сессия истекла";
-  if (status === 403) return "Недостаточно прав";
-  if (status === 404) return "Ресурс не найден";
-  if (status === 405) return "Метод не разрешен для этого endpoint";
-  if (status === 409) return "Конфликт данных";
-  if (status === 422) return "Проверьте заполнение формы";
-  if (status >= 500) return "Backend вернул внутреннюю ошибку";
-  return `Запрос не выполнен: HTTP ${status}`;
+  if (status === 400) return copy.badRequest;
+  if (status === 401) return copy.unauthorized;
+  if (status === 403) return copy.forbidden;
+  if (status === 404) return copy.notFound;
+  if (status === 405) return copy.methodNotAllowed;
+  if (status === 409) return copy.conflict;
+  if (status === 422) return copy.validation;
+  if (status >= 500) return copy.server;
+  return `${copy.requestFailed}: HTTP ${status}`;
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -47,7 +82,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   try {
     response = await fetch(`/api${path}`, { ...options, headers });
   } catch {
-    throw new ApiError(0, "Backend недоступен. Проверьте локальный backend или Vite proxy");
+    throw new ApiError(0, currentCopy().unavailable);
   }
 
   if (response.status === 204) return undefined as T;
@@ -64,5 +99,5 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 }
 
 export function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Неизвестная ошибка";
+  return error instanceof Error ? error.message : currentCopy().unknown;
 }

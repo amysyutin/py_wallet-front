@@ -42,7 +42,7 @@ type DailyHistoryPoint = {
   hasSnapshot: boolean;
 };
 
-function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd: string }>) {
+function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd: string }>, locale = "ru-RU") {
   const byTimestamp = new Map<string, number>();
 
   for (const point of points) {
@@ -56,8 +56,8 @@ function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd:
       const date = new Date(timestamp);
       return {
         timestamp,
-        label: date.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }),
-        tooltipLabel: date.toLocaleString("ru-RU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
+        label: date.toLocaleDateString(locale, { day: "2-digit", month: "short" }),
+        tooltipLabel: date.toLocaleString(locale, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
         total,
       };
     });
@@ -67,7 +67,7 @@ function localDayKey(date: Date) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
 }
 
-function buildDailyHistoryData(points: PortfolioChartPoint[], days: number): DailyHistoryPoint[] {
+function buildDailyHistoryData(points: PortfolioChartPoint[], days: number, locale = "ru-RU"): DailyHistoryPoint[] {
   const byDay = new Map<string, PortfolioChartPoint[]>();
 
   for (const point of points) {
@@ -97,8 +97,8 @@ function buildDailyHistoryData(points: PortfolioChartPoint[], days: number): Dai
     const delta = total === null || previousTotal === null ? null : total - previousTotal;
     const point = {
       day,
-      label: date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }).replace(".", ""),
-      fullLabel: date.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }),
+      label: date.toLocaleDateString(locale, { day: "numeric", month: "short" }).replace(".", ""),
+      fullLabel: date.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" }),
       total,
       previousTotal,
       delta,
@@ -111,8 +111,8 @@ function buildDailyHistoryData(points: PortfolioChartPoint[], days: number): Dai
   });
 }
 
-function formatSignedUsd(value: number | null) {
-  if (value === null) return "Нет предыдущей даты";
+function formatSignedUsd(value: number | null, noPreviousDate: string) {
+  if (value === null) return noPreviousDate;
   return value > 0 ? `+${formatUsd(value)}` : formatUsd(value);
 }
 
@@ -122,17 +122,25 @@ function allocationScopeKey(scope: PortfolioAllocationScope) {
     : `selection:${[...scope.group_ids].sort((left, right) => left - right).join(",")}:${scope.include_ungrouped}`;
 }
 
-function HistoryTooltip({ active, payload }: { active?: boolean; payload?: ReadonlyArray<{ payload: DailyHistoryPoint }> }) {
+function HistoryTooltip({
+  active,
+  payload,
+  copy,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload: DailyHistoryPoint }>;
+  copy: ReturnType<typeof usePageCopy>["dashboard"];
+}) {
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
 
   return (
     <div className="history-tooltip">
       <span>{point.fullLabel}</span>
-      <strong className={point.delta !== null && point.delta < 0 ? "negative" : "positive"}>{formatSignedUsd(point.delta)}</strong>
-      {point.total !== null ? <p>Портфель: {formatUsd(point.total)}</p> : null}
-      {point.previousTotal !== null ? <p>День до этого: {formatUsd(point.previousTotal)}</p> : null}
-      {!point.hasSnapshot ? <em>Нового snapshot не было</em> : null}
+      <strong className={point.delta !== null && point.delta < 0 ? "negative" : "positive"}>{formatSignedUsd(point.delta, copy.noPreviousDate)}</strong>
+      {point.total !== null ? <p>{copy.portfolio}: {formatUsd(point.total)}</p> : null}
+      {point.previousTotal !== null ? <p>{copy.previousDay}: {formatUsd(point.previousTotal)}</p> : null}
+      {!point.hasSnapshot ? <em>{copy.noNewSnapshot}</em> : null}
     </div>
   );
 }
@@ -159,17 +167,17 @@ export function Dashboard() {
   });
 
   if (summaryQuery.isLoading) {
-    return <PageState title={copy.loadingPortfolio} message="Portfolio summary & snapshots" />;
+    return <PageState title={copy.loadingPortfolio} message={copy.dashboard.summaryLoadingHint} />;
   }
 
   if (summaryQuery.isError) {
-    return <PageState title={copy.portfolioFailed} message="Check backend and authentication." />;
+    return <PageState title={copy.portfolioFailed} message={copy.dashboard.summaryErrorHint} />;
   }
 
   const summary = summaryQuery.data;
 
   if (!summary) {
-    return <PageState title="Нет данных portfolio summary" />;
+    return <PageState title={copy.dashboard.noSummary} />;
   }
 
   if (!hasActiveWallets) {
@@ -186,19 +194,19 @@ export function Dashboard() {
   const topAssets = allocationScopeMatches ? allocationQuery.data?.items ?? [] : [];
   const allocationLoading = allocationQuery.isLoading || (allocationQuery.isFetching && !allocationScopeMatches);
   const history = historyQuery.data?.points ?? [];
-  const historyChartData = buildPortfolioChartData(history);
-  const dailyHistoryData = buildDailyHistoryData(historyChartData, historyDays);
+  const historyChartData = buildPortfolioChartData(history, copy.locale);
+  const dailyHistoryData = buildDailyHistoryData(historyChartData, historyDays, copy.locale);
   return (
     <div className="dashboard-grid">
       <section className="metrics-grid soft-row">
-        <Metric label="Wallets" value={String(summary.active_wallets_count ?? summary.wallets_count)} helper="active in summary" icon={<WalletCards size={20} />} />
-        <Metric label="Top assets" value={String(topAssets.length)} helper="portfolio share" icon={<Layers3 size={20} />} />
+        <Metric label={copy.dashboard.wallets} value={String(summary.active_wallets_count ?? summary.wallets_count)} helper={copy.dashboard.activeInSummary} icon={<WalletCards size={20} />} />
+        <Metric label={copy.dashboard.topAssets} value={String(topAssets.length)} helper={copy.dashboard.portfolioShare} icon={<Layers3 size={20} />} />
       </section>
 
       <article className="content-band allocation-card">
         <SectionHeader
-          eyebrow="Assets"
-          title="Allocation"
+          eyebrow={copy.dashboard.assets}
+          title={copy.dashboard.allocation}
           actions={
             <AllocationGroupFilter
               groups={groupsQuery.data ?? []}
@@ -210,18 +218,18 @@ export function Dashboard() {
         />
         {allocationScopeMatches && allocationQuery.data ? (
           <p className="allocation-scope-summary">
-            <strong>{allocationScope.mode === "all" ? (language === "ru" ? "Все активные кошельки" : "All active wallets") : (language === "ru" ? "Выбранные группы" : "Selected groups")}</strong>
-            {" · "}{language === "ru" ? "Сумма" : "Subtotal"}: {formatUsd(allocationQuery.data.total_usd)}
-            {" · "}{allocationQuery.data.wallets_count} {language === "ru" ? "кош." : "wallets"}
-            <span>{language === "ru" ? "Portfolio value и история остаются глобальными." : "Portfolio value and history remain global."}</span>
+            <strong>{allocationScope.mode === "all" ? copy.dashboard.allActiveWallets : copy.dashboard.selectedGroups}</strong>
+            {" · "}{copy.dashboard.subtotal}: {formatUsd(allocationQuery.data.total_usd)}
+            {" · "}{allocationQuery.data.wallets_count} {copy.dashboard.walletsShort}
+            <span>{copy.dashboard.globalHint}</span>
           </p>
         ) : null}
         {allocationLoading ? (
-          <PageState title={language === "ru" ? "Загружаем распределение" : "Loading allocation"} />
+          <PageState title={copy.dashboard.loadingAllocation} />
         ) : allocationQuery.isError ? (
-          <PageState title={language === "ru" ? "Не удалось загрузить распределение" : "Could not load allocation"} />
+          <PageState title={copy.dashboard.allocationFailed} />
         ) : topAssets.length === 0 ? (
-          <PageState title={copy.noAssets} message="Portfolio allocation will appear after wallet processing." />
+          <PageState title={copy.noAssets} message={copy.dashboard.allocationEmptyHint} />
         ) : (
           <div className="chart-grid">
             <ResponsiveContainer width="100%" height={250}>
@@ -250,10 +258,10 @@ export function Dashboard() {
 
       <article className="content-band history-card">
         <SectionHeader
-          eyebrow="History"
-          title="Стоимость по дням"
+          eyebrow={copy.dashboard.history}
+          title={copy.dashboard.valueByDay}
           actions={
-            <div className="history-periods" role="group" aria-label="Период истории портфеля">
+            <div className="history-periods" role="group" aria-label={copy.dashboard.historyPeriod}>
               {historyPeriods.map((days) => (
                 <button
                   key={days}
@@ -262,20 +270,20 @@ export function Dashboard() {
                   aria-pressed={historyDays === days}
                   onClick={() => setHistoryDays(days)}
                 >
-                  {days}д
+                  {days}{copy.dashboard.daySuffix}
                 </button>
               ))}
             </div>
           }
         />
         {historyQuery.isLoading ? (
-          <PageState title="Загружаем историю" />
+          <PageState title={copy.dashboard.loadingHistory} />
         ) : historyQuery.isError ? (
           <PageState title={copy.historyFailed} message={copy.historyFailedHint} />
         ) : history.length === 0 ? (
-          <PageState title={copy.noHistory} message="Create the first snapshot." />
+          <PageState title={copy.noHistory} message={copy.dashboard.createSnapshotHint} />
         ) : (
-          <div className="history-chart" role="img" aria-label={`График изменения портфеля по дням за ${historyDays} дней`} aria-busy={historyQuery.isFetching}>
+          <div className="history-chart" role="img" aria-label={`${copy.dashboard.chartAria} ${historyDays} ${copy.dashboard.chartDays}`} aria-busy={historyQuery.isFetching}>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={dailyHistoryData} margin={{ left: 0, right: 8, top: 18, bottom: 4 }}>
                 <defs>
@@ -288,12 +296,12 @@ export function Dashboard() {
                 <XAxis dataKey="label" axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} />
                 <Tooltip
                   cursor={{ stroke: "#d9cfc8", strokeDasharray: "4 4" }}
-                  content={<HistoryTooltip />}
+                  content={<HistoryTooltip copy={copy.dashboard} />}
                 />
                 <Area
                   type="monotone"
                   dataKey="total"
-                  name="Стоимость портфеля"
+                  name={copy.dashboard.chartName}
                   stroke="#ec6046"
                   strokeWidth={4}
                   fill="url(#historyFill)"
@@ -303,7 +311,7 @@ export function Dashboard() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-            <p className="history-note">Наведите на линию или коснитесь графика, чтобы увидеть стоимость и изменение за день.</p>
+            <p className="history-note">{copy.dashboard.chartHint}</p>
           </div>
         )}
       </article>

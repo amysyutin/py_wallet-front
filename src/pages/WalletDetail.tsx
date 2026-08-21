@@ -125,9 +125,9 @@ export function WalletDetail() {
       />
 
       <div className="detail-grid wallet-detail-grid">
-        <p className="full-address-line"><b>{copy.address}:</b> {wallet.address || "manual wallet"}</p>
+        <p className="full-address-line"><b>{copy.address}:</b> {wallet.address || copy.wallet.manualWallet}</p>
         <p><b>{copy.networks}:</b> {isEvm ? copy.allNetworks : wallet.chain_type}</p>
-        <p><b>{copy.status}:</b> {wallet.is_active ? "active" : "archived"}</p>
+        <p><b>{copy.status}:</b> {wallet.is_active ? copy.wallet.active : copy.wallet.archived}</p>
       </div>
 
       <section className={`wallet-data-health data-health-${health?.state ?? "neutral"}`} aria-live="polite">
@@ -139,7 +139,7 @@ export function WalletDetail() {
         <div className="wallet-health-facts">
           {health ? <span className="status-pill">{copy.portfolioHealthStates[health.state]}</span> : null}
           <p><b>{copy.walletDataSource}:</b> {savedSource}</p>
-          <p><b>{copy.walletAsOf}:</b> {health?.as_of ? new Date(health.as_of).toLocaleString() : copy.none}</p>
+          <p><b>{copy.walletAsOf}:</b> {health?.as_of ? new Date(health.as_of).toLocaleString(copy.locale) : copy.none}</p>
           {health ? (
             <p>
               <b>{copy.portfolioPriceQuality}:</b> {copy.portfolioPriceStates[health.price_quality.state]}
@@ -171,7 +171,7 @@ export function WalletDetail() {
           {wallet.address ? (
             <button className="chip" type="button" onClick={() => navigator.clipboard.writeText(wallet.address ?? "")}>
               <Copy size={15} />
-              Копировать адрес
+              {copy.copyAddress}
             </button>
           ) : null}
         </form>
@@ -181,11 +181,11 @@ export function WalletDetail() {
 
       {wallet.wallet_type === "manual" ? (
         <section className="nested-section">
-          <SectionHeader eyebrow="Manual" title={`${copy.balances} ${formatUsd(balancesQuery.data?.total_usd)}`} />
+          <SectionHeader eyebrow={copy.wallet.manual} title={`${copy.balances} ${formatUsd(balancesQuery.data?.total_usd)}`} />
           <form className="inline-form" onSubmit={handleAddBalance}>
             <input value={symbol} onChange={(event) => setSymbol(event.target.value.toUpperCase())} placeholder="BTC" required />
-            <input value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="Amount" required />
-            <input value={priceUsd} onChange={(event) => setPriceUsd(event.target.value)} placeholder="Price USD" />
+            <input value={amount} onChange={(event) => setAmount(event.target.value)} placeholder={copy.wallet.amount} required />
+            <input value={priceUsd} onChange={(event) => setPriceUsd(event.target.value)} placeholder={copy.wallet.priceUsd} />
             <button className="primary-button" type="submit">
               <Plus size={18} />
               {copy.save}
@@ -200,7 +200,7 @@ export function WalletDetail() {
                   <span>{balance.amount} · {balance.chain}</span>
                 </div>
                 <b>{formatUsd(balance.value_usd)}</b>
-                <button className="icon-button danger" type="button" onClick={() => deleteMutation.mutate(balance.asset_id)} aria-label="Удалить актив">
+                <button className="icon-button danger" type="button" onClick={() => deleteMutation.mutate(balance.asset_id)} aria-label={copy.wallet.deleteAsset}>
                   <Trash2 size={17} />
                 </button>
               </article>
@@ -208,12 +208,12 @@ export function WalletDetail() {
           </div>
         </section>
       ) : (
-        <p className="muted">EVM-снапшоты агрегируют этот адрес по поддерживаемым сетям.</p>
+        <p className="muted">{copy.wallet.evmHint}</p>
       )}
 
       {isEvm ? (
         <section className="nested-section">
-          <SectionHeader eyebrow="Live" title={copy.walletLiveTitle} />
+          <SectionHeader eyebrow={copy.wallet.live} title={copy.walletLiveTitle} />
           <p className="muted">{copy.walletLiveHint}</p>
           <button
             className="secondary-button wallet-live-check"
@@ -252,7 +252,7 @@ export function WalletDetail() {
 
       <section className="nested-section">
         <SectionHeader eyebrow={copy.walletSourceSnapshot} title={`${copy.assets} ${formatUsd(summaryQuery.data?.balance_usd)}`} />
-        {summaryQuery.isLoading ? <PageState title="Загружаем summary" /> : null}
+        {summaryQuery.isLoading ? <PageState title={copy.wallet.loadingSummary} /> : null}
         {summaryQuery.isError ? <p className="form-error">{getErrorMessage(summaryQuery.error)}</p> : null}
         <div className="table-list">
           {(summaryQuery.data?.assets ?? []).map((asset) => (
@@ -268,14 +268,14 @@ export function WalletDetail() {
       </section>
 
       <section className="nested-section">
-        <SectionHeader eyebrow="Snapshots" title={copy.recentRuns} />
+        <SectionHeader eyebrow={copy.wallet.snapshots} title={copy.recentRuns} />
         {snapshotsQuery.isError ? <p className="form-error">{getErrorMessage(snapshotsQuery.error)}</p> : null}
         <div className="table-list">
           {(snapshotsQuery.data ?? []).map((snapshot) => (
             <article className="table-row" key={snapshot.id}>
               <div>
                 <strong>{formatUsd(snapshot.total_usd)}</strong>
-                <span>{new Date(snapshot.snapshot_at).toLocaleString("ru-RU")} · run #{snapshot.snapshot_run_id}</span>
+                <span>{new Date(snapshot.snapshot_at).toLocaleString(copy.locale)} · {copy.wallet.run} #{snapshot.snapshot_run_id}</span>
               </div>
               <span className={snapshot.status === "success" ? "status-pill active" : "status-pill"}>{snapshot.status}</span>
             </article>
