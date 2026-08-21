@@ -11,6 +11,15 @@
   min-width: 0;
 }
 
+.telegram-header > .language-switcher-compact {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-color: var(--telegram-border);
+  background: var(--telegram-surface);
+  color: var(--telegram-text);
+}
+
 .telegram-header > .portfolio-value-cluster {
   flex: 0 1 58%;
   justify-content: flex-end;
@@ -82,7 +91,7 @@
 
   .telegram-header > .portfolio-value-cluster {
     flex-basis: auto;
-    max-width: 66%;
+    max-width: 58%;
   }
 
   .telegram-header .data-health-trigger span {

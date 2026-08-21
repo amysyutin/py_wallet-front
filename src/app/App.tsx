@@ -5,6 +5,7 @@ import { RouteError } from "../components/RouteError";
 import { ProtectedRoute } from "../routes/ProtectedRoute";
 import { TelegramAuth } from "../telegram/TelegramAuth";
 import { TelegramLayout } from "../telegram/TelegramLayout";
+import { usePageCopy } from "../telegram/i18n";
 import { lazyNamedRoute } from "./lazyNamedRoute";
 
 const accountSettingsRoute = lazyNamedRoute(
@@ -37,7 +38,8 @@ const walletDetailRoute = lazyNamedRoute(
 const walletsRoute = lazyNamedRoute(() => import("../pages/Wallets"), "Wallets");
 
 function RouteLoading() {
-  return <PageState title="Загружаем страницу" />;
+  const copy = usePageCopy();
+  return <PageState title={copy.route.loading} />;
 }
 
 const router = createBrowserRouter([
