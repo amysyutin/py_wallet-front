@@ -191,6 +191,7 @@ export function WalletDetail() {
               {copy.save}
             </button>
           </form>
+          <p className="muted">{copy.wallet.manualLivePriceHint}</p>
           {saveMutation.isError ? <p className="form-error">{getErrorMessage(saveMutation.error)}</p> : null}
           <div className="table-list">
             {(balancesQuery.data?.balances ?? []).map((balance) => (
