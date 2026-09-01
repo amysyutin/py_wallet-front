@@ -133,9 +133,11 @@ Manual wallets allow users to enter balances manually:
 - symbol
 - chain
 - amount
-- USD price
+- optional USD price override
 
-The backend calculates USD value from the submitted balance data.
+When the price is blank, the next snapshot resolves supported crypto tickers
+through CoinGecko and three-letter ISO fiat tickers through Frankfurter. A
+filled USD price remains a manual override.
 
 ### Snapshots
 

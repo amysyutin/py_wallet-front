@@ -3,10 +3,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getManualBalances,
   getWallet,
   getWalletAssets,
   getWalletSnapshots,
   getWalletSummary,
+  saveManualBalances,
 } from "../api/wallets";
 import { useLanguage } from "../telegram/i18n";
 import { WalletDetail } from "./WalletDetail";
@@ -26,6 +28,8 @@ const getWalletMock = vi.mocked(getWallet);
 const getWalletAssetsMock = vi.mocked(getWalletAssets);
 const getWalletSnapshotsMock = vi.mocked(getWalletSnapshots);
 const getWalletSummaryMock = vi.mocked(getWalletSummary);
+const getManualBalancesMock = vi.mocked(getManualBalances);
+const saveManualBalancesMock = vi.mocked(saveManualBalances);
 
 function renderWalletDetail(path = "/wallets/41") {
   const client = new QueryClient({
@@ -55,6 +59,8 @@ describe("wallet detail data health", () => {
     getWalletAssetsMock.mockReset();
     getWalletSnapshotsMock.mockReset();
     getWalletSummaryMock.mockReset();
+    getManualBalancesMock.mockReset();
+    saveManualBalancesMock.mockReset();
     const wallet = {
       id: 41,
       label: "Primary",
@@ -127,5 +133,56 @@ describe("wallet detail data health", () => {
     expect(screen.getByText(/does not replace the saved value or history/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Check live" })).toBeInTheDocument();
     expect(getWalletAssetsMock).not.toHaveBeenCalled();
+  });
+
+  it("explains ticker pricing and submits a blank price for live resolution", async () => {
+    const manualWallet = {
+      id: 41,
+      label: "Cash",
+      wallet_type: "manual" as const,
+      chain_type: "manual",
+      address: null,
+      group_id: null,
+      notes: null,
+      is_active: true,
+      created_at: "2026-08-01T00:00:00Z",
+      updated_at: "2026-08-01T00:00:00Z",
+    };
+    getWalletMock.mockResolvedValue(manualWallet);
+    getWalletSummaryMock.mockResolvedValue({
+      wallet: manualWallet,
+      balance_usd: "0",
+      last_snapshot_at: null,
+      assets: [],
+    });
+    getManualBalancesMock.mockResolvedValue({
+      wallet_id: 41,
+      wallet_label: "Cash",
+      wallet_type: "manual",
+      balances: [],
+      total_usd: "0",
+    });
+    saveManualBalancesMock.mockResolvedValue({
+      wallet_id: 41,
+      wallet_label: "Cash",
+      wallet_type: "manual",
+      balances: [],
+      total_usd: "0",
+    });
+
+    renderWalletDetail();
+
+    expect(await screen.findByText(/ISO-коды валют вроде EUR/)).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText("BTC"), { target: { value: "eur" } });
+    fireEvent.change(screen.getByPlaceholderText("Количество"), { target: { value: "250" } });
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() =>
+      expect(saveManualBalancesMock).toHaveBeenCalledWith(41, {
+        balances: [
+          { symbol: "EUR", chain: "manual", amount: "250", price_usd: null },
+        ],
+      }),
+    );
   });
 });

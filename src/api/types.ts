@@ -1,4 +1,5 @@
 export type UserRole = "user" | "admin";
+export type PriceSource = "coingecko" | "frankfurter" | "manual" | "static_dev" | "unknown";
 
 export type UserRead = {
   id: number;
@@ -80,7 +81,7 @@ export type WalletDetailSummary = {
     }>;
     price_quality: {
       state: "complete" | "estimated" | "incomplete" | "unknown";
-      sources: Array<"coingecko" | "manual" | "static_dev" | "unknown">;
+      sources: PriceSource[];
       assets_priced: number;
       assets_total: number;
     };
@@ -154,7 +155,7 @@ export type PortfolioSummary = {
     }>;
     price_quality?: {
       state: "complete" | "estimated" | "incomplete" | "unknown";
-      sources: Array<"coingecko" | "manual" | "static_dev" | "unknown">;
+      sources: PriceSource[];
       assets_priced: number;
       assets_total: number;
     };
@@ -192,7 +193,7 @@ export type PortfolioAllocation = {
   }>;
   data_quality: {
     state: "complete" | "estimated" | "incomplete" | "unknown" | "empty";
-    sources: Array<"coingecko" | "manual" | "static_dev" | "unknown">;
+    sources: PriceSource[];
     assets_priced: number;
     assets_total: number;
   };
