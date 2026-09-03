@@ -30,7 +30,7 @@ The frontend provides a personal portfolio dashboard where users can:
 - trigger portfolio snapshots
 - view total portfolio value in USD
 - inspect top assets by share
-- analyze historical portfolio value
+- analyze historical portfolio value by on-chain, CEX, and manual source class
 - use public demo endpoints for safe preview data
 
 ## Current Status
@@ -83,9 +83,11 @@ The dashboard is designed to show the current state of the user's portfolio:
 - an owner-safe affected-network retry action that polls the child job and
   refreshes portfolio data without exposing provider errors or identifiers
 
-Portfolio summary combines the latest persisted EVM snapshots and manual
-balances. The UI does not treat live diagnostics or partial refresh failures as
-a replacement for the last readable persisted total.
+Portfolio summary combines the latest persisted on-chain, exchange, and manual
+balances. The history chart stacks on-chain, CEX, and manual USD values from
+timestamped source observations; it never re-prices an older CEX balance with a
+current quote. The UI does not treat live diagnostics or partial refresh failures
+as a replacement for the last readable persisted total.
 
 Wallet detail follows the same rule: its saved value is paired with scoped
 freshness, source, price quality, active-refresh state, and affected networks.
@@ -151,14 +153,12 @@ The frontend supports:
 
 ### Portfolio History
 
-Historical data is shown with a chart based on saved snapshots.
+Historical data is shown with a stacked chart based on saved snapshots. Each
+point keeps separate on-chain, CEX, and manual totals while the top of the stack
+remains the total portfolio value.
 
-Planned improvements:
-
-- selectable time ranges
-- wallet-level filtering
-- richer asset breakdown by snapshot
-- clearer latest snapshot metadata
+Selectable 7/14/30/90-day ranges are available. CEX appears only after a fully
+valued exchange snapshot; missing historical quotes are not displayed as zero.
 
 ### Explore and Demo Data
 

@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getGroups } from "../api/groups";
 import { getPortfolioAllocation, getPortfolioHistory, getPortfolioSummary } from "../api/portfolio";
+import { buildPortfolioChartData } from "../lib/portfolioHistory";
 import { useLanguage } from "../telegram/i18n";
 import { Dashboard } from "./Dashboard";
 
@@ -119,6 +120,33 @@ describe("dashboard history cleanup", () => {
     expect(screen.queryByText("30 Days")).not.toBeInTheDocument();
     expect(screen.queryByText("Balance movement")).not.toBeInTheDocument();
     expect(screen.queryByText("Движение баланса")).not.toBeInTheDocument();
+  });
+
+  it("renders and preserves on-chain, CEX, and manual source contributions", async () => {
+    const sourcePoint = {
+      snapshot_at: "2026-09-03T07:00:00Z",
+      total_usd: "175.50",
+      sources: {
+        onchain_usd: "100",
+        cex_usd: "50.50",
+        manual_usd: "25",
+      },
+    };
+    getPortfolioHistoryMock.mockResolvedValue({ days: 32, points: [sourcePoint] });
+
+    const chartData = buildPortfolioChartData([sourcePoint], "en-US");
+    expect(chartData[0]).toMatchObject({
+      total: 175.5,
+      onchain: 100,
+      cex: 50.5,
+      manual: 25,
+    });
+
+    renderDashboard("/", "/", "/wallets");
+
+    expect(await screen.findByLabelText("Portfolio history sources")).toHaveTextContent(
+      "On-chainCEXManual",
+    );
   });
 
   it("does not present a history API failure as an empty history", async () => {
