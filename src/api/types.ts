@@ -1,5 +1,5 @@
 export type UserRole = "user" | "admin";
-export type PriceSource = "coingecko" | "frankfurter" | "manual" | "static_dev" | "unknown";
+export type PriceSource = "coingecko" | "binance_usdt" | "frankfurter" | "manual" | "static_dev" | "unknown";
 
 export type UserRead = {
   id: number;
@@ -203,7 +203,15 @@ export type PortfolioHistory = {
   wallet_id?: number | null;
   group_id?: number | null;
   days: number;
-  points: Array<{ snapshot_at: string; total_usd: string }>;
+  points: Array<{
+    snapshot_at: string;
+    total_usd: string;
+    sources: {
+      onchain_usd: string;
+      cex_usd: string | null;
+      manual_usd: string;
+    };
+  }>;
 };
 
 export type LivePortfolioSummary = {

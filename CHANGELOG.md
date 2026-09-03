@@ -4,6 +4,11 @@ All notable changes to the **py_wallet-front** application are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Show portfolio history as stacked on-chain, CEX, and manual value series with
+  source-level totals in the chart tooltip.
+
 ### Changed
 
 - Explain ticker-based live pricing for manual crypto and fiat balances, while

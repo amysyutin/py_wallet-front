@@ -25,91 +25,15 @@ import { Metric } from "../components/Metric";
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd, toNumber } from "../lib/format";
+import {
+  buildDailyHistoryData,
+  buildPortfolioChartData,
+  type DailyHistoryPoint,
+} from "../lib/portfolioHistory";
 import { useLanguage, usePageCopy } from "../telegram/i18n";
 
 const colors = ["#ec6046", "#f2a35e", "#161616", "#d9cfc8", "#8f9b92"];
 const historyPeriods = [7, 14, 30, 90] as const;
-
-type PortfolioChartPoint = ReturnType<typeof buildPortfolioChartData>[number];
-
-type DailyHistoryPoint = {
-  day: string;
-  label: string;
-  fullLabel: string;
-  total: number | null;
-  previousTotal: number | null;
-  delta: number | null;
-  hasSnapshot: boolean;
-};
-
-function buildPortfolioChartData(points: Array<{ snapshot_at: string; total_usd: string }>, locale = "ru-RU") {
-  const byTimestamp = new Map<string, number>();
-
-  for (const point of points) {
-    const timestamp = new Date(point.snapshot_at).toISOString();
-    byTimestamp.set(timestamp, (byTimestamp.get(timestamp) ?? 0) + toNumber(point.total_usd));
-  }
-
-  return Array.from(byTimestamp.entries())
-    .sort(([left], [right]) => new Date(left).getTime() - new Date(right).getTime())
-    .map(([timestamp, total]) => {
-      const date = new Date(timestamp);
-      return {
-        timestamp,
-        label: date.toLocaleDateString(locale, { day: "2-digit", month: "short" }),
-        tooltipLabel: date.toLocaleString(locale, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
-        total,
-      };
-    });
-}
-
-function localDayKey(date: Date) {
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
-}
-
-function buildDailyHistoryData(points: PortfolioChartPoint[], days: number, locale = "ru-RU"): DailyHistoryPoint[] {
-  const byDay = new Map<string, PortfolioChartPoint[]>();
-
-  for (const point of points) {
-    const date = new Date(point.timestamp);
-    const day = localDayKey(date);
-    const bucket = byDay.get(day) ?? [];
-    bucket.push(point);
-    byDay.set(day, bucket);
-  }
-
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
-  const dates = Array.from({ length: days }, (_, index) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() - (days - index - 1));
-    return date;
-  });
-  const firstDay = localDayKey(dates[0]);
-  const earlierDay = Array.from(byDay.keys()).filter((day) => day < firstDay).sort().at(-1);
-  let previousTotal = earlierDay ? byDay.get(earlierDay)?.at(-1)?.total ?? null : null;
-
-  return dates.map((date) => {
-    const day = localDayKey(date);
-    const bucket = byDay.get(day);
-    const hasSnapshot = Boolean(bucket?.length);
-    const total = bucket?.at(-1)?.total ?? previousTotal;
-    const delta = total === null || previousTotal === null ? null : total - previousTotal;
-    const point = {
-      day,
-      label: date.toLocaleDateString(locale, { day: "numeric", month: "short" }).replace(".", ""),
-      fullLabel: date.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" }),
-      total,
-      previousTotal,
-      delta,
-      hasSnapshot,
-    };
-    previousTotal = total;
-    return {
-      ...point,
-    };
-  });
-}
 
 function formatSignedUsd(value: number | null, noPreviousDate: string) {
   if (value === null) return noPreviousDate;
@@ -139,6 +63,9 @@ function HistoryTooltip({
       <span>{point.fullLabel}</span>
       <strong className={point.delta !== null && point.delta < 0 ? "negative" : "positive"}>{formatSignedUsd(point.delta, copy.noPreviousDate)}</strong>
       {point.total !== null ? <p>{copy.portfolio}: {formatUsd(point.total)}</p> : null}
+      {point.onchain !== null ? <p>{copy.onchain}: {formatUsd(point.onchain)}</p> : null}
+      {point.cex !== null ? <p>{copy.cex}: {formatUsd(point.cex)}</p> : null}
+      {point.manual !== null ? <p>{copy.manual}: {formatUsd(point.manual)}</p> : null}
       {point.previousTotal !== null ? <p>{copy.previousDay}: {formatUsd(point.previousTotal)}</p> : null}
       {!point.hasSnapshot ? <em>{copy.noNewSnapshot}</em> : null}
     </div>
@@ -300,17 +227,47 @@ export function Dashboard() {
                 />
                 <Area
                   type="monotone"
-                  dataKey="total"
-                  name={copy.dashboard.chartName}
+                  dataKey="onchain"
+                  name={copy.dashboard.onchain}
+                  stackId="sources"
                   stroke="#ec6046"
-                  strokeWidth={4}
+                  strokeWidth={3}
                   fill="url(#historyFill)"
                   connectNulls={false}
                   dot={false}
                   activeDot={{ r: 6, fill: "#ec6046", stroke: "#ffffff", strokeWidth: 2 }}
                 />
+                <Area
+                  type="monotone"
+                  dataKey="cex"
+                  name={copy.dashboard.cex}
+                  stackId="sources"
+                  stroke="#f2a35e"
+                  strokeWidth={3}
+                  fill="#f2a35e"
+                  fillOpacity={0.18}
+                  connectNulls={false}
+                  dot={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="manual"
+                  name={copy.dashboard.manual}
+                  stackId="sources"
+                  stroke="#161616"
+                  strokeWidth={3}
+                  fill="#161616"
+                  fillOpacity={0.1}
+                  connectNulls={false}
+                  dot={false}
+                />
               </AreaChart>
             </ResponsiveContainer>
+            <div className="history-source-legend" aria-label={copy.dashboard.sourceLegend}>
+              <span><i className="onchain" />{copy.dashboard.onchain}</span>
+              <span><i className="cex" />{copy.dashboard.cex}</span>
+              <span><i className="manual" />{copy.dashboard.manual}</span>
+            </div>
             <p className="history-note">{copy.dashboard.chartHint}</p>
           </div>
         )}

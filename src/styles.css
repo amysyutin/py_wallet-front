@@ -1134,6 +1134,41 @@ select:focus {
   line-height: 1.45;
 }
 
+.history-source-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+  color: #77736f;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.history-source-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-source-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.history-source-legend .onchain {
+  background: #ec6046;
+}
+
+.history-source-legend .cex {
+  background: #f2a35e;
+}
+
+.history-source-legend .manual {
+  background: #161616;
+}
+
 .chart-grid {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(190px, 0.9fr);
