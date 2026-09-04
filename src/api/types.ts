@@ -191,12 +191,41 @@ export type PortfolioAllocation = {
     usd_value: string;
     share_pct: number;
   }>;
+  available_assets?: Array<{
+    asset_key: string;
+    symbol: string;
+    usd_value: string;
+    share_pct: number;
+  }>;
+  targets?: PortfolioAllocationTarget[];
+  rebalancing?: {
+    status: "not_applicable" | "not_configured" | "empty" | "ready" | "incomplete";
+    tolerance_pct: number;
+    items: PortfolioRebalancingItem[];
+  };
   data_quality: {
     state: "complete" | "estimated" | "incomplete" | "unknown" | "empty";
     sources: PriceSource[];
     assets_priced: number;
     assets_total: number;
   };
+};
+
+export type PortfolioAllocationTarget = {
+  asset_key: string;
+  symbol: string;
+  target_pct: string;
+};
+
+export type PortfolioRebalancingItem = {
+  asset_key: string;
+  symbol: string;
+  current_usd: string;
+  current_pct: number;
+  target_pct: number;
+  deviation_pct: number;
+  suggested_usd: string;
+  action: "increase" | "reduce" | "within_target";
 };
 
 export type PortfolioHistory = {
