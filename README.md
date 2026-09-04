@@ -74,6 +74,7 @@ The dashboard is designed to show the current state of the user's portfolio:
 - number of wallets included in the summary
 - top assets by portfolio share
 - asset allocation chart
+- persisted global allocation targets and deviation-based rebalancing hints
 - portfolio value history chart
 - empty states when no snapshots exist yet
 - a shared web/Telegram data-health drawer with freshness, coverage, price
@@ -86,6 +87,14 @@ The dashboard is designed to show the current state of the user's portfolio:
 Portfolio summary combines the latest persisted EVM snapshots and manual
 balances. The UI does not treat live diagnostics or partial refresh failures as
 a replacement for the last readable persisted total.
+
+The global allocation view lets the user distribute exactly 100% across stable
+asset keys. Saved targets are account-scoped in the backend. The dashboard shows
+the current and target shares plus a USD amount to increase or reduce, with a
+one-percentage-point tolerance. These are informational calculations only:
+PyWallet never creates orders, signs transactions, or moves assets. Target
+editing is intentionally unavailable for group-filtered views because the saved
+distribution applies to the global portfolio.
 
 Wallet detail follows the same rule: its saved value is paired with scoped
 freshness, source, price quality, active-refresh state, and affected networks.

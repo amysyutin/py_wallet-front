@@ -1,6 +1,7 @@
 import { apiFetch } from "./client";
 import type {
   PortfolioAllocation,
+  PortfolioAllocationTarget,
   PortfolioAllocationScope,
   PortfolioHistory,
   PortfolioSummary,
@@ -13,6 +14,12 @@ export function getPortfolioAllocation(scope: PortfolioAllocationScope) {
     search.set("include_ungrouped", String(scope.include_ungrouped));
   }
   return apiFetch<PortfolioAllocation>(`/portfolio/allocation?${search.toString()}`);
+}
+export function replacePortfolioAllocationTargets(items: PortfolioAllocationTarget[]) {
+  return apiFetch<{ items: PortfolioAllocationTarget[] }>("/portfolio/allocation/targets", {
+    method: "PUT",
+    body: JSON.stringify({ items }),
+  });
 }
 export function getPortfolioHistory(params: { walletId?: number | null; days: number }) {
   const search = new URLSearchParams({ days: String(params.days) });
