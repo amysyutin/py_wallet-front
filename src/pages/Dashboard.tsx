@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Layers3,
   WalletCards,
@@ -17,14 +17,20 @@ import {
   XAxis,
 } from "recharts";
 import { getGroups } from "../api/groups";
-import { getPortfolioAllocation, getPortfolioHistory, getPortfolioSummary } from "../api/portfolio";
-import type { PortfolioAllocationScope } from "../api/types";
+import {
+  getPortfolioAllocation,
+  getPortfolioHistory,
+  getPortfolioSummary,
+  replacePortfolioAllocationTargets,
+} from "../api/portfolio";
+import type { PortfolioAllocation, PortfolioAllocationScope } from "../api/types";
 import { AllocationGroupFilter } from "../components/AllocationGroupFilter";
 import { FirstWalletActivation } from "../components/FirstWalletActivation";
 import { Metric } from "../components/Metric";
 import { PageState } from "../components/PageState";
 import { SectionHeader } from "../components/SectionHeader";
 import { formatUsd, toNumber } from "../lib/format";
+import { getErrorMessage } from "../api/client";
 import { useLanguage, usePageCopy } from "../telegram/i18n";
 
 const colors = ["#ec6046", "#f2a35e", "#161616", "#d9cfc8", "#8f9b92"];
@@ -122,6 +128,19 @@ function allocationScopeKey(scope: PortfolioAllocationScope) {
     : `selection:${[...scope.group_ids].sort((left, right) => left - right).join(",")}:${scope.include_ungrouped}`;
 }
 
+function targetableAssets(allocation: PortfolioAllocation) {
+  const assets = new Map(
+    (allocation.available_assets ?? allocation.items.filter((item) => item.asset_key !== "__other__"))
+      .map((item) => [item.asset_key, { asset_key: item.asset_key, symbol: item.symbol }]),
+  );
+  for (const target of allocation.targets ?? []) {
+    if (!assets.has(target.asset_key)) {
+      assets.set(target.asset_key, { asset_key: target.asset_key, symbol: target.symbol });
+    }
+  }
+  return Array.from(assets.values());
+}
+
 function HistoryTooltip({
   active,
   payload,
@@ -147,9 +166,12 @@ function HistoryTooltip({
 
 export function Dashboard() {
   const copy = usePageCopy();
+  const queryClient = useQueryClient();
   const language = useLanguage((state) => state.language);
   const [historyDays, setHistoryDays] = useState<(typeof historyPeriods)[number]>(30);
   const [allocationScope, setAllocationScope] = useState<PortfolioAllocationScope>({ mode: "all" });
+  const [targetEditorOpen, setTargetEditorOpen] = useState(false);
+  const [draftTargets, setDraftTargets] = useState<Record<string, string>>({});
   const summaryQuery = useQuery({ queryKey: ["portfolio", "summary"], queryFn: getPortfolioSummary });
   const hasActiveWallets = (summaryQuery.data?.active_wallets_count ?? summaryQuery.data?.wallets_count ?? 0) > 0;
   const groupsQuery = useQuery({ queryKey: ["wallet-groups"], queryFn: getGroups, enabled: hasActiveWallets });
@@ -164,6 +186,14 @@ export function Dashboard() {
     queryFn: () => getPortfolioHistory({ days: historyDays + 2 }),
     placeholderData: (previousData) => previousData,
     enabled: hasActiveWallets,
+  });
+  const targetsMutation = useMutation({
+    mutationFn: (items: Parameters<typeof replacePortfolioAllocationTargets>[0]) =>
+      replacePortfolioAllocationTargets(items),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["portfolio", "allocation"] });
+      setTargetEditorOpen(false);
+    },
   });
 
   if (summaryQuery.isLoading) {
@@ -196,6 +226,33 @@ export function Dashboard() {
   const history = historyQuery.data?.points ?? [];
   const historyChartData = buildPortfolioChartData(history, copy.locale);
   const dailyHistoryData = buildDailyHistoryData(historyChartData, historyDays, copy.locale);
+  const allocation = allocationScopeMatches ? allocationQuery.data : undefined;
+  const targets = allocation?.targets ?? [];
+  const targetAssets = allocation ? targetableAssets(allocation) : [];
+  const targetTotal = Math.round(
+    Object.values(draftTargets).reduce((total, value) => total + (Number(value) || 0), 0) * 100,
+  ) / 100;
+
+  function openTargetEditor() {
+    if (!allocation) return;
+    const configured = new Map((allocation.targets ?? []).map((target) => [target.asset_key, target.target_pct]));
+    setDraftTargets(Object.fromEntries(targetableAssets(allocation).map((asset) => [asset.asset_key, configured.get(asset.asset_key) ?? ""])));
+    targetsMutation.reset();
+    setTargetEditorOpen(true);
+  }
+
+  function saveTargets() {
+    if (!allocation || targetTotal !== 100) return;
+    const byKey = new Map(targetAssets.map((asset) => [asset.asset_key, asset]));
+    const items = Object.entries(draftTargets)
+      .filter(([, value]) => Number(value) > 0)
+      .map(([asset_key, target_pct]) => ({
+        asset_key,
+        symbol: byKey.get(asset_key)?.symbol ?? asset_key,
+        target_pct,
+      }));
+    targetsMutation.mutate(items);
+  }
   return (
     <div className="dashboard-grid">
       <section className="metrics-grid soft-row">
@@ -208,12 +265,22 @@ export function Dashboard() {
           eyebrow={copy.dashboard.assets}
           title={copy.dashboard.allocation}
           actions={
-            <AllocationGroupFilter
-              groups={groupsQuery.data ?? []}
-              value={allocationScope}
-              onApply={setAllocationScope}
-              language={language}
-            />
+            <div className="allocation-actions">
+              {allocationScope.mode === "all" ? (
+                <button type="button" className="secondary-button" onClick={openTargetEditor} disabled={!allocation}>
+                  {targets.length ? copy.dashboard.editTargets : copy.dashboard.setTargets}
+                </button>
+              ) : null}
+              <AllocationGroupFilter
+                groups={groupsQuery.data ?? []}
+                value={allocationScope}
+                onApply={(scope) => {
+                  setTargetEditorOpen(false);
+                  setAllocationScope(scope);
+                }}
+                language={language}
+              />
+            </div>
           }
         />
         {allocationScopeMatches && allocationQuery.data ? (
@@ -223,6 +290,50 @@ export function Dashboard() {
             {" · "}{allocationQuery.data.wallets_count} {copy.dashboard.walletsShort}
             <span>{copy.dashboard.globalHint}</span>
           </p>
+        ) : null}
+        {targetEditorOpen && allocationScope.mode === "all" ? (
+          <form
+            className="allocation-target-editor"
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveTargets();
+            }}
+          >
+            <div className="allocation-target-heading">
+              <div>
+                <strong>{copy.dashboard.targetEditorTitle}</strong>
+                <span>{copy.dashboard.targetEditorHint}</span>
+              </div>
+              <b className={targetTotal === 100 || targetTotal === 0 ? "" : "negative"}>{targetTotal.toFixed(2)}%</b>
+            </div>
+            <div className="allocation-target-inputs">
+              {targetAssets.map((asset) => (
+                <label key={asset.asset_key}>
+                  <span><strong>{asset.symbol}</strong><small>{asset.asset_key}</small></span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={draftTargets[asset.asset_key] ?? ""}
+                    aria-label={`${copy.dashboard.targetFor} ${asset.symbol}`}
+                    onChange={(event) => setDraftTargets({ ...draftTargets, [asset.asset_key]: event.target.value })}
+                  />
+                  <em>%</em>
+                </label>
+              ))}
+            </div>
+            {targetsMutation.isError ? <p className="form-error">{getErrorMessage(targetsMutation.error)}</p> : null}
+            <div className="allocation-target-buttons">
+              <button type="submit" disabled={targetTotal !== 100 || targetsMutation.isPending}>{copy.save}</button>
+              {targets.length ? (
+                <button type="button" className="secondary-button" disabled={targetsMutation.isPending} onClick={() => targetsMutation.mutate([])}>
+                  {copy.dashboard.clearTargets}
+                </button>
+              ) : null}
+              <button type="button" className="secondary-button" onClick={() => setTargetEditorOpen(false)}>{copy.dashboard.cancelTargets}</button>
+            </div>
+          </form>
         ) : null}
         {allocationLoading ? (
           <PageState title={copy.dashboard.loadingAllocation} />
@@ -254,6 +365,36 @@ export function Dashboard() {
             </div>
           </div>
         )}
+        {allocationScope.mode === "all" && allocation?.rebalancing ? (
+          <section className="rebalancing-panel" aria-label={copy.dashboard.rebalancingTitle}>
+            <div className="rebalancing-heading">
+              <div>
+                <strong>{copy.dashboard.rebalancingTitle}</strong>
+                <span>{copy.dashboard.rebalancingHint}</span>
+              </div>
+              {allocation.rebalancing.status === "incomplete" ? <em>{copy.dashboard.rebalancingIncomplete}</em> : null}
+            </div>
+            {allocation.rebalancing.status === "not_configured" ? (
+              <p>{copy.dashboard.targetsEmpty}</p>
+            ) : allocation.rebalancing.status === "empty" ? (
+              <p>{copy.dashboard.targetsNoValue}</p>
+            ) : (
+              <div className="rebalancing-list">
+                {allocation.rebalancing.items.map((item) => (
+                  <div key={item.asset_key} className="rebalancing-row">
+                    <span><strong>{item.symbol}</strong><small>{item.current_pct}% → {item.target_pct}%</small></span>
+                    <b className={item.action === "reduce" ? "negative" : item.action === "increase" ? "positive" : ""}>
+                      {item.action === "within_target"
+                        ? copy.dashboard.withinTarget
+                        : `${item.action === "increase" ? copy.dashboard.increase : copy.dashboard.reduce} ${formatUsd(Math.abs(toNumber(item.suggested_usd)))}`}
+                    </b>
+                  </div>
+                ))}
+              </div>
+            )}
+            <small className="rebalancing-disclaimer">{copy.dashboard.rebalancingDisclaimer}</small>
+          </section>
+        ) : null}
       </article>
 
       <article className="content-band history-card">

@@ -657,6 +657,132 @@ select:focus {
   font-size: 0.76rem;
 }
 
+.allocation-actions,
+.allocation-target-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.allocation-actions .secondary-button {
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.allocation-target-editor,
+.rebalancing-panel {
+  margin-top: 16px;
+  border-radius: 20px;
+  padding: 16px;
+  background: #f8f5f2;
+}
+
+.allocation-target-heading,
+.rebalancing-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.allocation-target-heading span,
+.rebalancing-heading span,
+.allocation-target-inputs small,
+.rebalancing-row small {
+  display: block;
+  margin-top: 3px;
+  color: #77736f;
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+.allocation-target-heading b.negative,
+.rebalancing-row b.negative {
+  color: #d94733;
+}
+
+.rebalancing-row b.positive {
+  color: #16864a;
+}
+
+.allocation-target-inputs {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.allocation-target-inputs label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.allocation-target-inputs input {
+  min-height: 42px;
+  padding: 8px 10px;
+  text-align: right;
+}
+
+.allocation-target-inputs em {
+  color: #77736f;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.allocation-target-buttons button {
+  min-height: 42px;
+}
+
+.rebalancing-panel > p {
+  margin: 14px 0 0;
+  color: #77736f;
+}
+
+.rebalancing-heading em {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #8d5f16;
+  background: #fff0c7;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.rebalancing-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.rebalancing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #e8e1dc;
+  padding-bottom: 8px;
+}
+
+.rebalancing-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.rebalancing-row b {
+  text-align: right;
+  font-size: 0.82rem;
+}
+
+.rebalancing-disclaimer {
+  display: block;
+  margin-top: 14px;
+  color: #8c8987;
+  line-height: 1.45;
+}
+
 .topbar-actions {
   display: flex;
   align-items: center;

@@ -3,7 +3,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getGroups } from "../api/groups";
-import { getPortfolioAllocation, getPortfolioHistory, getPortfolioSummary } from "../api/portfolio";
+import {
+  getPortfolioAllocation,
+  getPortfolioHistory,
+  getPortfolioSummary,
+  replacePortfolioAllocationTargets,
+} from "../api/portfolio";
 import { useLanguage } from "../telegram/i18n";
 import { Dashboard } from "./Dashboard";
 
@@ -11,6 +16,7 @@ vi.mock("../api/portfolio", () => ({
   getPortfolioAllocation: vi.fn(),
   getPortfolioHistory: vi.fn(),
   getPortfolioSummary: vi.fn(),
+  replacePortfolioAllocationTargets: vi.fn(),
 }));
 vi.mock("../api/groups", () => ({ getGroups: vi.fn() }));
 
@@ -18,6 +24,7 @@ const getGroupsMock = vi.mocked(getGroups);
 const getPortfolioAllocationMock = vi.mocked(getPortfolioAllocation);
 const getPortfolioHistoryMock = vi.mocked(getPortfolioHistory);
 const getPortfolioSummaryMock = vi.mocked(getPortfolioSummary);
+const replacePortfolioAllocationTargetsMock = vi.mocked(replacePortfolioAllocationTargets);
 
 function renderDashboard(initialEntry: string, dashboardPath: string, walletsPath: string) {
   const client = new QueryClient({
@@ -47,6 +54,7 @@ describe("first wallet activation", () => {
     getPortfolioAllocationMock.mockReset();
     getGroupsMock.mockReset();
     getPortfolioSummaryMock.mockReset();
+    replacePortfolioAllocationTargetsMock.mockReset();
     getPortfolioSummaryMock.mockResolvedValue({
       total_usd: "0",
       wallets_count: 0,
@@ -91,6 +99,7 @@ describe("dashboard history cleanup", () => {
     getPortfolioAllocationMock.mockReset();
     getGroupsMock.mockReset();
     getPortfolioSummaryMock.mockReset();
+    replacePortfolioAllocationTargetsMock.mockReset();
     getGroupsMock.mockResolvedValue([]);
     getPortfolioAllocationMock.mockResolvedValue({
       scope: { mode: "all" },
@@ -163,5 +172,70 @@ describe("dashboard history cleanup", () => {
       include_ungrouped: false,
     }));
     expect(await screen.findByText("ETH")).toBeInTheDocument();
+  });
+
+  it("edits global targets and shows deterministic rebalancing hints", async () => {
+    getPortfolioAllocationMock.mockResolvedValue({
+      scope: { mode: "all" },
+      wallets_count: 1,
+      total_usd: "100",
+      items: [
+        { asset_key: "manual:BTC", symbol: "BTC", usd_value: "60", share_pct: 60 },
+        { asset_key: "manual:ETH", symbol: "ETH", usd_value: "40", share_pct: 40 },
+      ],
+      available_assets: [
+        { asset_key: "manual:BTC", symbol: "BTC", usd_value: "60", share_pct: 60 },
+        { asset_key: "manual:ETH", symbol: "ETH", usd_value: "40", share_pct: 40 },
+      ],
+      targets: [
+        { asset_key: "manual:BTC", symbol: "BTC", target_pct: "50.00" },
+        { asset_key: "manual:ETH", symbol: "ETH", target_pct: "50.00" },
+      ],
+      rebalancing: {
+        status: "ready",
+        tolerance_pct: 1,
+        items: [
+          {
+            asset_key: "manual:BTC",
+            symbol: "BTC",
+            current_usd: "60",
+            current_pct: 60,
+            target_pct: 50,
+            deviation_pct: 10,
+            suggested_usd: "-10",
+            action: "reduce",
+          },
+          {
+            asset_key: "manual:ETH",
+            symbol: "ETH",
+            current_usd: "40",
+            current_pct: 40,
+            target_pct: 50,
+            deviation_pct: -10,
+            suggested_usd: "10",
+            action: "increase",
+          },
+        ],
+      },
+      data_quality: { state: "complete", sources: ["manual"], assets_priced: 2, assets_total: 2 },
+    });
+    getPortfolioHistoryMock.mockResolvedValue({ days: 32, points: [] });
+    replacePortfolioAllocationTargetsMock.mockResolvedValue({ items: [] });
+
+    renderDashboard("/", "/", "/wallets");
+
+    expect(await screen.findByText("Target deviations")).toBeInTheDocument();
+    expect(screen.getByText(/Reduce by/)).toHaveTextContent("$10.00");
+    expect(screen.getByText(/never submits orders or transactions/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit targets" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Target for BTC" }), { target: { value: "55" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Target for ETH" }), { target: { value: "45" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(replacePortfolioAllocationTargetsMock).toHaveBeenCalledWith([
+      { asset_key: "manual:BTC", symbol: "BTC", target_pct: "55" },
+      { asset_key: "manual:ETH", symbol: "ETH", target_pct: "45" },
+    ]));
   });
 });
