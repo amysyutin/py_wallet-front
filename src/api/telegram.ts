@@ -7,6 +7,7 @@ export type TelegramSettings = {
   language: AppLanguage;
   timezone: string;
   daily_at: string;
+  alert_threshold_percent: number | null;
 };
 
 export const loginWithTelegram = (initData: string) =>
