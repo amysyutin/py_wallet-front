@@ -30,6 +30,7 @@ export function TelegramSettings() {
     language,
     timezone: localTimezone(),
     daily_at: "09:00",
+    alert_threshold_percent: null,
   });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -107,6 +108,21 @@ export function TelegramSettings() {
         <div className="telegram-card-title"><Languages size={22} /><h2>{copy.settings}</h2></div>
         <form className="telegram-settings-form" onSubmit={savePreferences}>
           <label>{copy.delivery}<input type="time" value={settings.daily_at} onChange={(event) => setSettings({ ...settings, daily_at: event.target.value })} /></label>
+          <label>
+            {copy.alertThreshold}
+            <input
+              type="number"
+              min="0.1"
+              max="1000"
+              step="0.1"
+              value={settings.alert_threshold_percent ?? ""}
+              onChange={(event) => setSettings({
+                ...settings,
+                alert_threshold_percent: event.target.value === "" ? null : Number(event.target.value),
+              })}
+            />
+            <small>{copy.alertThresholdHint}</small>
+          </label>
           <label>{copy.language}<select value={settings.language} onChange={(event) => setSettings({ ...settings, language: event.target.value as AppLanguage })}><option value="ru">Русский</option><option value="en">English</option></select></label>
           <small>{settings.timezone}</small>
           <button className="chip" type="submit" disabled={saveMutation.isPending}><Save size={17} />{copy.save}</button>
