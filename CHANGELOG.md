@@ -6,6 +6,8 @@ All notable changes to the **py_wallet-front** application are documented here.
 
 ### Added
 
+- Show portfolio history as stacked on-chain, CEX, and manual value series with
+  source-level totals in the chart tooltip.
 - Add a global allocation-target editor and read-only rebalancing hints with an
   explicit warning when portfolio valuation data is incomplete.
 
